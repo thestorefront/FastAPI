@@ -65,6 +65,36 @@ class FastAPI
 
   end
 
+  # Create and execute an optimized SQL query based on specified filters.
+  #   Runs through mode fastapi_safe_fields list
+  #
+  # @param filters [Hash] a hash containing the intended filters
+  # @param meta [Hash] a hash containing custom metadata
+  # @return [FastAPI] the current instance
+  def safe_filter(filters = {}, meta = {})
+
+    result = fastapi_query(filters, true)
+
+    metadata = {}
+
+    meta.each do |key, value|
+      metadata[key] = value
+    end
+
+    metadata[:total] = result[:total]
+    metadata[:offset] = result[:offset]
+    metadata[:count] = result[:count]
+    metadata[:error] = result[:error]
+
+    @metadata = metadata
+    @data = result[:data]
+
+    @result_type = @@result_types[:multiple]
+
+    self
+
+  end
+
   # Create and execute an optimized SQL query based on specified object id.
   # Provides customized error response if not found.
   #
@@ -164,7 +194,7 @@ class FastAPI
 
   private
 
-    def fastapi_query(filters = {})
+    def fastapi_query(filters = {}, safe = false)
 
       offset = 0
       count = 500
@@ -180,7 +210,7 @@ class FastAPI
         filters.delete(:__count)
       end
 
-      prepared_data = api_generate_sql(filters, offset, count)
+      prepared_data = api_generate_sql(filters, offset, count, safe)
 
       model_lookup = {}
       prepared_data[:models].each do |key, model|
@@ -432,7 +462,7 @@ class FastAPI
 
     end
 
-    def parse_filters(filters, model = nil)
+    def parse_filters(filters, safe = false, model = nil)
 
       if not filters.has_key? :__order
         filters[:__order] = [:created_at, 'DESC']
@@ -440,6 +470,14 @@ class FastAPI
 
       self_obj = model.nil? ? @model : model
       self_string_table = model.nil? ? @model.to_s.tableize : '__' + model.to_s.tableize
+
+      if safe
+        filters.each do |key, value|
+          if not [:__order, :__offset, :__count].include? key and not self_obj.fastapi_fields_whitelist.include? key
+            filters.delete(key)
+          end
+        end
+      end
 
       filter_array = []
       filter_has_many = {}
@@ -497,7 +535,7 @@ class FastAPI
 
             if model.nil? and self_obj.reflect_on_all_associations(:has_many).map(&:name).include? key
 
-              filter_result = parse_filters(value, field.singularize.classify.constantize)
+              filter_result = parse_filters(value, safe, field.singularize.classify.constantize)
               # logger.info filter_result
               filter_has_many[key] = filter_result[:main]
               order_has_many[key] = filter_result[:main_order]
@@ -559,7 +597,7 @@ class FastAPI
 
     end
 
-    def api_generate_sql(filters, offset, count)
+    def api_generate_sql(filters, offset, count, safe = false)
 
       api_filters = {}
 
@@ -578,7 +616,7 @@ class FastAPI
         api_filters[field.to_sym] = value
       end
 
-      filters = parse_filters(api_filters)
+      filters = parse_filters(api_filters, safe)
 
       fields = []
       belongs = []
