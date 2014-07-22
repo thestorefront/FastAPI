@@ -18,6 +18,24 @@ Requirements
 
 This gem requires Oj 2.9.9 for JSONification, and Rails (>= 3.2).
 
+FastAPI currently supports PostegreSQL as a data layer.
+
+
+Installation
+============
+
+FastAPI is available via RubyGems using:
+
+```
+> gem install fastapi
+```
+
+Otherwise, in any Gemfile in a rails project, use:
+
+```ruby
+require 'fastapi'
+```
+
 
 Examples
 ========
@@ -424,3 +442,58 @@ render json: Model.fastapi.filter({__offset: 100, __count: 100}).response
 
 Would return (up to) 100 results from Model, beginning at result number 100.
 (Page 2 at 100 results per page.)
+
+
+Standard Output
+===============
+
+FastAPI has a very strict, standard way of outputting data in the form of
+a response.
+
+Responses will always look like the following:
+
+```javascript
+{
+  'meta': {
+    'total': 0,
+    'count': 0,
+    'offset': 0,
+    'error': null,
+  },
+  'data': []
+}
+```
+
+Where `meta.total` is the total number of records in the entire dataset,
+`meta.count` is the number of records in the response, `meta.offset` is the
+offset of the first record of the response, and `meta.error` is `null` if there
+was no error, or a string containing an error message if there was an error.
+
+`data` will always be an Array of Objects. If there was an error with the
+response, data will be empty. If the response was formed by a
+`FastAPIInstance.fetch` call and a record was retrieved, `data` will be a
+length-1 Array.
+
+
+Credits
+=======
+
+Thanks for reading! We welcome contributors with good ideas, and we're always
+looking for new talent.
+
+FastAPI was created by [Keith Horwood](http://keithwhor.com/) of
+[Storefront, Inc.](http://thestorefront.com/) in 2014 and is (happily!) MIT
+licensed.
+
+
+Twitter:
+[@keithwhor](http://twitter.com/keithwhor),
+[@Storefront](http://twitter.com/storefront)
+
+
+Github:
+[keithwhor](http://github.com/keithwhor),
+[thestorefront](http://github.com/thestorefront)
+
+
+Most recent version of the gem is available at [RubyGems.org: fastapi](https://rubygems.org/gems/fastapi)

@@ -35,6 +35,12 @@ class FastAPI
     "<#{self.class}: #{@model}>"
   end
 
+
+  # Create and execute an optimized SQL query based on specified filters
+  #
+  # @param filters [Hash] a hash containing the intended filters
+  # @param meta [Hash] a hash containing custom metadata
+  # @return [FastAPI] the current instance
   def filter(filters = {}, meta = {})
 
     result = fastapi_query(filters)
@@ -59,6 +65,12 @@ class FastAPI
 
   end
 
+  # Create and execute an optimized SQL query based on specified object id.
+  # Provides customized error response if not found.
+  #
+  # @param id [Integer] the id of the object to retrieve
+  # @param meta [Hash] a hash containing custom metadata
+  # @return [FastAPI] the current instance
   def fetch(id, meta = {})
 
     result = fastapi_query({id: id})
@@ -89,22 +101,37 @@ class FastAPI
 
   end
 
-  def data_json
-    Oj.dump(@data)
-  end
-
+  # Returns the data from the most recently executed `filter` or `fetch` call.
+  #
+  # @return [Array] available data
   def data
     @data
   end
 
-  def meta_json
-    Oj.dump(meta)
+  # Returns JSONified data from the most recently executed `filter` or `fetch` call.
+  #
+  # @return [String] available data in JSON format
+  def data_json
+    Oj.dump(@data)
   end
 
+  # Returns the metadata from the most recently executed `filter` or `fetch` call.
+  #
+  # @return [Hash] available metadata
   def meta
     @metadata
   end
 
+  # Returns JSONified metadata from the most recently executed `filter` or `fetch` call.
+  #
+  # @return [String] available metadata in JSON format
+  def meta_json
+    Oj.dump(meta)
+  end
+
+  # Returns both the data and metadata from the most recently executed `filter` or `fetch` call.
+  #
+  # @return [Hash] available data and metadata
   def to_hash
     {
       meta: @metadata,
@@ -112,10 +139,17 @@ class FastAPI
     }
   end
 
+  # Intended to return the final API response
+  #
+  # @return [String] JSON data and metadata
   def response
     Oj.dump(self.to_hash)
   end
 
+  # Returns a JSONified string representing a standardized empty API response, with a provided error message
+  #
+  # @param message [String] Error message to be used in response
+  # @return [String] JSON data and metadata, with error
   def reject(message = 'Access denied')
     Oj.dump({
       meta: {

@@ -6,14 +6,26 @@ module FastAPIExtension
 
   module ClassMethods
 
+    # Used to set the standard interface for the top level of a fastapi response
+    #
+    # @param fields [Array] a list of fields in the form of symbols
+    # @return [Array] the same array of fields
     def fastapi_standard_interface(fields)
       @fastapi_fields = fields
     end
 
+    # Used to set the standard interface for the second level of a fastapi response (nested)
+    #
+    # @param fields [Array] a list of fields in the form of symbols
+    # @return [Array] the same array of fields
     def fastapi_standard_interface_nested(fields)
       @fastapi_fields_sub = fields
     end
 
+    # Used to set any default filters for the top level fastapi response
+    #
+    # @param filters [Hash] a hash containing the intended filters
+    # @return [Hash] the same filters hash
     def fastapi_default_filters(filters)
       @fastapi_filters = filters
     end
