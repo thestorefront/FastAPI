@@ -10,7 +10,7 @@ module FastAPIExtension
       @fastapi_fields = fields
     end
 
-    def fastapi_standard_interface_sub(fields)
+    def fastapi_standard_interface_nested(fields)
       @fastapi_fields_sub = fields
     end
 
