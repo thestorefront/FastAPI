@@ -91,7 +91,7 @@ class Person < ActiveRecord::Base
 
   # Person is not top-level in the case of the "buckets"
   #   endpoint... we use a special setting indicating
-  #   which fields to use if Marble happens to be nested.
+  #   which fields to use if Person happens to be nested.
 
   # You can NOT include dependent fields here. (belongs_to, has_many)
   #   This is a hard-and-fast FastAPI rule that prevents overly
@@ -108,7 +108,9 @@ end
 ```
 
 Keep in mind that this will only affect the cases where `Person` is a nested
-object. If we want to expose a top-level `Person` api endpoint, we would use
+object.
+
+If we wanted to expose a top-level `Person` api endpoint, we would use
 `fastapi_standard_interface` as well.
 
 Finally, we must modify our `Marble` model in the same way:
@@ -125,7 +127,7 @@ class Marble < ActiveRecord::Base
 end
 ```
 
-Hmm... we only want to list the `Marble`s that have a radius *less than or equal
+Hmm... let's say we only want to list the `Marbles` that have a radius *less than or equal
 to (<=)* 10. Easy! We go back and modify our `Bucket` model. Add the following
 to `class Bucket < ActiveRecord::Base`:
 
@@ -140,8 +142,9 @@ to `class Bucket < ActiveRecord::Base`:
   })
 ```
 
-*Phew!* We're almost done. Now to create the endpoint. First open
-`config/routes.rb` and add the following:
+*Phew!* We're almost done. Now to create the endpoint.
+
+First open `config/routes.rb` and add the following:
 
 ```ruby
 namespace :api do
@@ -177,7 +180,9 @@ Boom! Run your server with `rails s` and hop your way over to
 `Buckets` in the FastAPI standard JSON format. :)
 
 Try to filter your datasets as well:
+
 `http://yourserver[:port]/api/v1/buckets?color=red` or
+
 `http://yourserver[:port]/api/v1/buckets?color__in[]=red&color__in[]=blue`
 
 There are many to play with, go nuts!
