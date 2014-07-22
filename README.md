@@ -38,7 +38,7 @@ Every `Person` has a `:name`, `:gender` and `:age`.
 We want to expose a list of `Buckets` as a JSONified API endpoint that contains
 records that look like the following:
 
-```json
+```javascript
   {
     'id': 1,
     'color': 'blue',
