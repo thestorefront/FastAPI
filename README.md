@@ -1,5 +1,4 @@
-FastAPI
-=======
+# FastAPI
 
 Easily create robust, standardized API endpoints using lightning-fast database queries
 
@@ -13,16 +12,14 @@ In only a few lines of code you can decide which fields you wish to expose to
 your endpoint, any filters you wish to run the data through, and create your controller.
 
 
-Requirements
-============
+# Requirements
 
 This gem requires Oj 2.9.9 for JSONification, and Rails (>= 3.2).
 
 FastAPI currently supports PostegreSQL as a data layer.
 
 
-Installation
-============
+# Installation
 
 FastAPI is available via RubyGems using:
 
@@ -37,8 +34,7 @@ require 'fastapi'
 ```
 
 
-Examples
-========
+# Examples
 
 Let's say we have three models. `Person`, `Bucket`, and `Marble`.
 Each `Bucket` belongs to a `Person` and can have many `Marbles`.
@@ -213,8 +209,7 @@ Try to filter your datasets as well:
 There are many to play with, go nuts!
 
 
-Documentation
-=============
+# Documentation
 
 FastAPI has four core components:
 
@@ -223,20 +218,20 @@ FastAPI has four core components:
 3. Filters, which provide a way of easily interfacing with your data
 4. FastAPI standard output, a strict way of displaying all FastAPI responses
 
+---
 
-ActiveRecord::Base Extension
-============================
+## ActiveRecord::Base (Extension)
 
-ClassMethods
-------------
+### ClassMethods
 
+#### fastapi_standard_interface
 `fastapi_standard_interface( fields [Array] )`
 
 Sets the standard interface for the top level of a fastapi response.
 Can use any available fields for the model, or `belongs_to` and `has_many`
 associations. Be sure to use the correct word form (singular vs. plural).
 
-
+#### fastapi_standard_interface_nested
 `fastapi_standard_interface_nested( fields [Array] )`
 
 Sets the standard interface for the second level of a fastapi response
@@ -244,7 +239,7 @@ Sets the standard interface for the second level of a fastapi response
 API response. Can use any available fields for the model, *does not support
 associations*.
 
-
+#### fastapi_default_filters
 `fastapi_default_filters( filters [Hash] )`
 
 Sets any default filters for the top level fastapi response. Will be
@@ -252,6 +247,7 @@ overridden if the same filter keys are provided when calling `.filter` on
 a FastAPI instance. See *Filters* section for more information on available
 filters.
 
+#### fastapi_safe_field
 `fastapi_safe_fields( fields [Array] )`
 
 Sets safe fields for `FastAPIInstance.safe_filter`. These safe fields are a
@@ -259,35 +255,37 @@ Sets safe fields for `FastAPIInstance.safe_filter`. These safe fields are a
 fields.
 
 
-InstanceMethods
----------------
+### InstanceMethods
 
+#### fastapi
 `fastapi`
 
 Shorthand for the FastAPI constructor. Equivalent to `FastAPI.new(MyModel)`.
 Recommended usage is `MyModel.fastapi`.
 
+---
 
-class FastAPI
-=============
+## class FastAPI
 
 `FastAPI` instances provide a way to interface with your datasets and obtain
 necessary information (for an API response or otherwise).
 
-InstanceMethods
----------------
+### InstanceMethods
 
+#### initialize
 `initialize( model [Model < ActiveRecord::Base] )`
 
 Constructor. Automatically called using `Model.fastapi`, but can be used as
 `FastAPI.new(Model)`. Binds the provided Model to the FastAPI instance.
 
+#### filter
 `filter( filters [Hash] = {} , meta [Hash] = {} )`
 
 Compiles and executes an SQL query based on the supplied filters (see *Filters*
   section for more details). Can add additional fields to the expected meta
   response in the output, as keys in the `meta` Hash.
 
+#### safe_filter
 `safe_filter( filters [Hash] = {} , meta [Hash] = {} )`
 
 Compiles and executes an SQL query based on the supplied filters (see *Filters*
@@ -296,49 +294,57 @@ Compiles and executes an SQL query based on the supplied filters (see *Filters*
   additional fields to the expected meta response in the output, as keys in the
   `meta` Hash. Intended for use with `filters = request.query_parameters`.
 
+#### fetch
 `fetch( id [Integer] , meta [Hash] = {} )`
 
 Similar to filter, but will retrieve a single object based on a single `id`.
 Ideal for `show` on a resource, as FastAPI will still format the response
 appropriately (and give a customized error for id not found).
 
+#### data
 `data`
 
 Returns a Hash containing the data from the most recently executed `filter` or
 `fetch` call.
 
+#### data_json
 `data_json`
 
 Returns a JSONified string containing the information in `data`
 
+#### meta
 `meta`
 
 Returns a Hash containing the metadata from the most recently executed `filter`
 or `fetch` call.
 
+#### meta_json
 `meta_json`
 
 Returns a JSONified string containing the information in `meta`
 
+#### to_hash
 `to_hash`
 
 Returns a Hash containing both the data and metadata from the most recently
 executed `filter` or `fetch` call.
 
+#### response
 `response`
 
 Intended to return the final API response. Returns a JSONified string containing
 the information available in the `to_hash` method.
 
+#### reject
 `reject( message [String] = 'Access Denied' )`
 
 Returns a JSONified string representing a standardized empty API response, with
 a provided error `message`. For example, if a user is not allowed to access a
 resource, you would call `render json: Model.fastapi.reject`.
 
+---
 
-Filters
-=======
+## Filters
 
 Filters are a powerful tool in FastAPI that allow for granular control
 of your API responses. `FastAPIInstance.filter()` accepts them, and they are
@@ -355,9 +361,9 @@ Model.fastapi.filter({
 Will grab a subset of all `Models` where `:key1` is `2` *and* `:key2` is
 `'three'`.
 
+---
 
-Filter Comparators
-------------------
+### Filter Comparators
 
 What if we want to find a subset of `Models` where `:key1` is *greater than or
 equal to (>=)* 5?
@@ -391,9 +397,9 @@ The available comparators are:
 If your key contains a double underscore, make sure to use the `__is` comparator
 if you look for a specific value.
 
+---
 
-Filters in HTTP Requests
-------------------------
+### Filters in HTTP Requests
 
 If you'd like to allow for client-side data filtration (highly recommended),
 simply use the following in your API endpoint controller:
@@ -409,17 +415,17 @@ query parameters.
 For example, `http://yourapp/api/v1/users/?active=t&age__gte=19&age__gte=35`
 could return all active users between 19 and 35 years old.
 
+---
 
-Data Types in HTTP Requests
----------------------------
+### Data Types in HTTP Requests
 
 While using FastAPI, boolean fields are automatically
 detected, and the strings `'t'` and `'f'` are converted to `true` and `false`,
 respectively. The same goes for integers. (Converted from string to int.)
 
+---
 
-Sorting
--------
+### Sorting
 
 In FastAPI, sorting is accomplished using a special filter: `:__order`
 
@@ -440,9 +446,9 @@ Or perhaps via HTTP (hitting an endpoint with `request.query_parameters` as the
 http://yourapp/api/v1/users/?__order=age,ASC
 ```
 
+---
 
-Pagination
-----------
+### Pagination
 
 In FastAPI we opted for very robust, granular control of API responses. "Pages"
 do not exist in a strict sense, but rather by `:__offset` and `:__count`, much
@@ -458,8 +464,7 @@ Would return (up to) 100 results from Model, beginning at result number 100.
 (Page 2 at 100 results per page.)
 
 
-Standard Output
-===============
+# Standard Output
 
 FastAPI has a very strict, standard way of outputting data in the form of
 a response.
@@ -489,8 +494,7 @@ response, data will be empty. If the response was formed by a
 length-1 Array.
 
 
-Credits
-=======
+# Credits
 
 Thanks for reading! We welcome contributors with good ideas, and we're always
 looking for new talent.

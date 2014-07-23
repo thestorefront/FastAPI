@@ -485,7 +485,7 @@ class FastAPI
             found_index = key.to_s.rindex('__')
             key_root = found_index.nil? ? key : key.to_s[0...found_index].to_sym
             if not [:__order, :__offset, :__count].include? key and not self_obj.fastapi_fields_whitelist.include? key_root
-              raise 'Filter "' + key_root.to_s + '" not supported'
+              raise 'Filter "' + key.to_s + '" not supported'
             end
           end
         end
@@ -527,7 +527,7 @@ class FastAPI
             not @model.reflect_on_all_associations(:has_many).map(&:name).include? key_root and
             not @model.reflect_on_all_associations(:belongs_to).map(&:name).include? key_root
           )
-            raise 'Filter "' + key_root.to_s + '" not supported'
+            raise 'Filter "' + key.to_s + '" not supported'
           end
         end
       end
