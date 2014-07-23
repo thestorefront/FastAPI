@@ -24,7 +24,7 @@ FastAPI currently supports PostegreSQL as a data layer.
 FastAPI is available via RubyGems using:
 
 ```
-> gem install fastapi
+$ gem install fastapi
 ```
 
 Otherwise, in any Gemfile in a rails project, use:
