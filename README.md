@@ -232,14 +232,14 @@ ClassMethods
 
 `fastapi_standard_interface( fields [Array] )`
 
-Used to set the standard interface for the top level of a fastapi response.
+Sets the standard interface for the top level of a fastapi response.
 Can use any available fields for the model, or `belongs_to` and `has_many`
 associations. Be sure to use the correct word form (singular vs. plural).
 
 
 `fastapi_standard_interface_nested( fields [Array] )`
 
-Used to set the standard interface for the second level of a fastapi response
+Sets the standard interface for the second level of a fastapi response
 (nested). Will be referred to whenever this model is found nested in another
 API response. Can use any available fields for the model, *does not support
 associations*.
@@ -247,10 +247,16 @@ associations*.
 
 `fastapi_default_filters( filters [Hash] )`
 
-Used to set any default filters for the top level fastapi response. Will be
+Sets any default filters for the top level fastapi response. Will be
 overridden if the same filter keys are provided when calling `.filter` on
 a FastAPI instance. See *Filters* section for more information on available
 filters.
+
+`fastapi_safe_fields( fields [Array] )`
+
+Sets safe fields for `FastAPIInstance.safe_filter`. These safe fields are a
+*whitelist* for filters, meaning safe_filter will only allow filtering by these
+fields.
 
 
 InstanceMethods
@@ -281,6 +287,14 @@ Constructor. Automatically called using `Model.fastapi`, but can be used as
 Compiles and executes an SQL query based on the supplied filters (see *Filters*
   section for more details). Can add additional fields to the expected meta
   response in the output, as keys in the `meta` Hash.
+
+`safe_filter( filters [Hash] = {} , meta [Hash] = {} )`
+
+Compiles and executes an SQL query based on the supplied filters (see *Filters*
+  section for more details). Will only allow filtering by fields set in
+  `fastapi_safe_fields`, or `fastapi_standard_interface` if not set. Can add
+  additional fields to the expected meta response in the output, as keys in the
+  `meta` Hash. Intended for use with `filters = request.query_parameters`.
 
 `fetch( id [Integer] , meta [Hash] = {} )`
 

@@ -210,7 +210,17 @@ class FastAPI
         filters.delete(:__count)
       end
 
-      prepared_data = api_generate_sql(filters, offset, count, safe)
+      begin
+        prepared_data = api_generate_sql(filters, offset, count, safe)
+      rescue Exception => error
+        return {
+          data: [],
+          total: 0,
+          count: 0,
+          offset: offset,
+          error: error.message
+        }
+      end
 
       model_lookup = {}
       prepared_data[:models].each do |key, model|
@@ -251,7 +261,7 @@ class FastAPI
         row.each_with_index do |val, key_index|
 
           field = fields[key_index]
-          split_index = field.index('__')
+          split_index = field.rindex('__')
 
           if field[0..7] == '__many__'
 
@@ -472,8 +482,10 @@ class FastAPI
 
         if safe
           filters.each do |key, value|
-            if not [:__order, :__offset, :__count].include? key and not self_obj.fastapi_fields_whitelist.include? key
-              filters.delete(key)
+            found_index = key.to_s.rindex('__')
+            key_root = found_index.nil? ? key : key.to_s[0...found_index].to_sym
+            if not [:__order, :__offset, :__count].include? key and not self_obj.fastapi_fields_whitelist.include? key_root
+              raise 'Filter "' + key_root.to_s + '" not supported'
             end
           end
         end
@@ -502,6 +514,24 @@ class FastAPI
       if not filters.has_key? :__order
         filters[:__order] = [:created_at, 'DESC']
       end
+
+
+      filters.each do |key, value|
+        if [:__order, :__offset, :__count].include? key
+          next
+        end
+        found_index = key.to_s.rindex('__')
+        key_root = found_index.nil? ? key : key.to_s[0...found_index].to_sym
+        if not self_obj.column_names.include? key_root.to_s
+          if not model.nil? or (
+            not @model.reflect_on_all_associations(:has_many).map(&:name).include? key_root and
+            not @model.reflect_on_all_associations(:belongs_to).map(&:name).include? key_root
+          )
+            raise 'Filter "' + key_root.to_s + '" not supported'
+          end
+        end
+      end
+
 
       filter_array = []
       filter_has_many = {}
@@ -544,12 +574,12 @@ class FastAPI
 
             field = key.to_s
 
-            if field.index('__').nil?
+            if field.rindex('__').nil?
               comparator = 'is'
             else
 
-              comparator = field[(field.index('__') + 2)..-1]
-              field = field[0...field.index('__')]
+              comparator = field[(field.rindex('__') + 2)..-1]
+              field = field[0...field.rindex('__')]
 
               if not @@api_comparator_list.include? comparator
                 next # skip dis bro
