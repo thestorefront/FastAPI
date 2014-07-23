@@ -464,19 +464,43 @@ class FastAPI
 
     def parse_filters(filters, safe = false, model = nil)
 
-      if not filters.has_key? :__order
-        filters[:__order] = [:created_at, 'DESC']
-      end
-
       self_obj = model.nil? ? @model : model
       self_string_table = model.nil? ? @model.to_s.tableize : '__' + model.to_s.tableize
 
-      if safe
-        filters.each do |key, value|
-          if not [:__order, :__offset, :__count].include? key and not self_obj.fastapi_fields_whitelist.include? key
-            filters.delete(key)
+      # if we're at the top level...
+      if model.nil?
+
+        if safe
+          filters.each do |key, value|
+            if not [:__order, :__offset, :__count].include? key and not self_obj.fastapi_fields_whitelist.include? key
+              filters.delete(key)
+            end
           end
         end
+
+        all_filters = {}
+
+        @model.fastapi_filters.each do |key, value|
+          if value.is_a? Hash
+            copy = {}
+            value.each do |key, value|
+              copy[key] = value
+            end
+            value = copy
+          end
+          all_filters[key] = value
+        end
+
+        filters.each do |field, value|
+          all_filters[field.to_sym] = value
+        end
+
+        filters = all_filters
+
+      end
+
+      if not filters.has_key? :__order
+        filters[:__order] = [:created_at, 'DESC']
       end
 
       filter_array = []
@@ -599,24 +623,7 @@ class FastAPI
 
     def api_generate_sql(filters, offset, count, safe = false)
 
-      api_filters = {}
-
-      @model.fastapi_filters.each do |key, value|
-        if value.is_a? Hash
-          copy = {}
-          value.each do |key, value|
-            copy[key] = value
-          end
-          value = copy
-        end
-        api_filters[key] = value
-      end
-
-      filters.each do |field, value|
-        api_filters[field.to_sym] = value
-      end
-
-      filters = parse_filters(api_filters, safe)
+      filters = parse_filters(filters, safe)
 
       fields = []
       belongs = []
