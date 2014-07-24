@@ -142,7 +142,7 @@ class FastAPI
   #
   # @return [String] available data in JSON format
   def data_json
-    Oj.dump(@data)
+    Oj.dump(@data, mode: :compat)
   end
 
   # Returns the metadata from the most recently executed `filter` or `fetch` call.
@@ -156,7 +156,7 @@ class FastAPI
   #
   # @return [String] available metadata in JSON format
   def meta_json
-    Oj.dump(meta)
+    Oj.dump(meta, mode: :compat)
   end
 
   # Returns both the data and metadata from the most recently executed `filter` or `fetch` call.
@@ -173,7 +173,7 @@ class FastAPI
   #
   # @return [String] JSON data and metadata
   def response
-    Oj.dump(self.to_hash)
+    Oj.dump(self.to_hash, mode: :compat)
   end
 
   # Returns a JSONified string representing a standardized empty API response, with a provided error message
@@ -189,12 +189,17 @@ class FastAPI
         error: message.to_s
       },
       data: [],
-    })
+    }, mode: :compat)
   end
 
   private
 
     def fastapi_query(filters = {}, safe = false)
+
+      if (not ActiveRecord::ConnectionAdapters.constants.include? :PostgreSQLAdapter or
+      not ActiveRecord::Base.connection.instance_of? ActiveRecord::ConnectionAdapters::PostgreSQLAdapter)
+        raise 'Fast API only supports PostgreSQL at this time'
+      end
 
       offset = 0
       count = 500
@@ -680,6 +685,8 @@ class FastAPI
 
       field_list = []
       joins = []
+
+      # array_to_string: (ActiveRecord::Base.connection.instance_of? ActiveRecord::ConnectionAdapters::SQLite3Adapter) ? 'GROUP_CONCAT' : 'ARRAY_TO_STRING',
 
       # Base fields
       fields.each do |field|
