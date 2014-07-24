@@ -680,7 +680,7 @@ class FastAPI
         end
       end
 
-      self_string = @model.to_s.downcase
+      self_string = @model.to_s.tableize.singularize
       self_string_table = @model.to_s.tableize
 
       field_list = []
@@ -737,7 +737,7 @@ class FastAPI
       # Many fields (Many to 1)
       has_many.each do |model|
 
-        model_string = model.to_s.downcase
+        model_string = model.to_s.tableize.singularize
         model_string_table = model.to_s.tableize
         model_symbol = model_string_table.to_sym
 
@@ -772,7 +772,8 @@ class FastAPI
               'as',
               '__' + model_string_table,
             'WHERE',
-              '__' + model_string_table + '.' + self_string + '_id',
+              '__' + model_string_table + '.' + self_string + '_id IS NOT NULL',
+              'AND __' + model_string_table + '.' + self_string + '_id',
               '=',
               self_string_table + '.id',
               has_many_filters,
