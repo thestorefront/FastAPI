@@ -11,6 +11,12 @@ and subqueries based upon model dependencies (namely `belongs_to` and `has_many`
 In only a few lines of code you can decide which fields you wish to expose to
 your endpoint, any filters you wish to run the data through, and create your controller.
 
+# Preview
+
+You can preview a live example of FastAPI at http://fastapi.herokuapp.com/
+
+The repository is located at [thestorefront/fastapi_example](http://github.com/thestorefront/fastapi_example)
+
 
 # Requirements
 
