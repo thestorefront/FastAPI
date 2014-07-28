@@ -236,7 +236,7 @@ class FastAPI
           types: model.fastapi_fields_sub.map { |field| (columns_hash.has_key? field.to_s) ? columns_hash[field.to_s].type : nil },
         }
       end
-      # model_lookup = model_lookup.map { |model| }
+
       error = nil
 
       begin
@@ -306,7 +306,7 @@ class FastAPI
 
       my_end = Time.now()
 
-      # logger.info dataset.size.to_s + '-length array parsed in ' + (my_end - start).to_s
+      # puts dataset.size.to_s + '-length array parsed in ' + (my_end - start).to_s
 
       {
         data: dataset,
@@ -337,31 +337,46 @@ class FastAPI
 
       while i < len
 
-        if str[i] == ')'
+        c = str[i]
+
+        if c == ')'
 
           rows << cur_row
           cur_row = {}
           entry_index = 0
           i = i + 3
 
-        elsif str[i] == '"'
+        elsif c == '"'
 
           i = i + 1
           nextIndex = str.index('"', i)
 
           while str[nextIndex - 1] == '\\'
+
+            j = 1
+            while str[nextIndex - j] == '\\'
+              j = j + 1
+            end
+
+            if j & 1 == 1
+              break
+            end
+
             nextIndex = str.index('"', nextIndex + 1)
+
           end
 
           cur_row[fields[entry_index]] = api_convert_type(str[i...nextIndex], types[entry_index])
           entry_index = entry_index + 1
 
           i = nextIndex + 1
+
         else
 
-          if str[i] == ','
+          if c == ','
             i = i + 1
           end
+
           parensIndex = str.index(')', i)
           nextIndex = str.index(',', i)
 
@@ -393,6 +408,7 @@ class FastAPI
       rows
 
     end
+
 
     def api_comparison(comparator, value)
 
@@ -595,7 +611,7 @@ class FastAPI
             if model.nil? and self_obj.reflect_on_all_associations(:has_many).map(&:name).include? key
 
               filter_result = parse_filters(value, safe, field.singularize.classify.constantize)
-              # logger.info filter_result
+              # puts filter_result
               filter_has_many[key] = filter_result[:main]
               order_has_many[key] = filter_result[:main_order]
 
