@@ -498,6 +498,7 @@ class FastAPI
       self_obj = model.nil? ? @model : model
       self_string_table = model.nil? ? @model.to_s.tableize : '__' + model.to_s.tableize
 
+      filters = filters.clone()
       # if we're at the top level...
       if model.nil?
 
@@ -511,18 +512,7 @@ class FastAPI
           end
         end
 
-        all_filters = {}
-
-        @model.fastapi_filters.each do |key, value|
-          if value.is_a? Hash
-            copy = {}
-            value.each do |key, value|
-              copy[key] = value
-            end
-            value = copy
-          end
-          all_filters[key] = value
-        end
+        all_filters = @model.fastapi_filters.clone()
 
         filters.each do |field, value|
           all_filters[field.to_sym] = value
@@ -533,7 +523,7 @@ class FastAPI
       end
 
       if not filters.has_key? :__order
-        filters[:__order] = [:created_at, 'DESC']
+        filters[:__order] = [:created_at, :DESC]
       end
 
 
@@ -566,7 +556,7 @@ class FastAPI
 
           if key == :__order
 
-            order = value
+            order = value.clone()
 
             if order.is_a? String
               order = order.split(',')
@@ -574,6 +564,7 @@ class FastAPI
                 order << 'ASC'
               end
             elsif order.is_a? Array
+              order = order.map { |v| v.to_s }
               while order.size < 2
                 order << ''
               end
@@ -581,10 +572,10 @@ class FastAPI
               order = ['', '']
             end
 
-            if not self_obj.column_names.include? order[0].to_s
+            if not self_obj.column_names.include? order[0]
               order = nil
             else
-              order[0] = self_string_table + '.' + order[0].to_s
+              order[0] = self_string_table + '.' + order[0]
               if not ['ASC', 'DESC'].include? order[1]
                 order[1] = 'ASC'
               end
