@@ -556,30 +556,38 @@ class FastAPI
 
           if key == :__order
 
-            order = value.clone()
+            if model.nil? and (value.is_a? String or value.is_a? Symbol) and @model.fastapi_custom_order.has_key? value.to_sym
 
-            if order.is_a? String
-              order = order.split(',')
-              if order.size < 2
-                order << 'ASC'
-              end
-            elsif order.is_a? Array
-              order = order.map { |v| v.to_s }
-              while order.size < 2
-                order << ''
-              end
-            else
-              order = ['', '']
-            end
+              order = @model.fastapi_custom_order[value.to_sym].gsub('self.', self_string_table + '.')
 
-            if not self_obj.column_names.include? order[0]
-              order = nil
             else
-              order[0] = self_string_table + '.' + order[0]
-              if not ['ASC', 'DESC'].include? order[1]
-                order[1] = 'ASC'
+
+              order = value.clone()
+
+              if order.is_a? String
+                order = order.split(',')
+                if order.size < 2
+                  order << 'ASC'
+                end
+              elsif order.is_a? Array
+                order = order.map { |v| v.to_s }
+                while order.size < 2
+                  order << ''
+                end
+              else
+                order = ['', '']
               end
-              order = order.join(' ')
+
+              if not self_obj.column_names.include? order[0]
+                order = nil
+              else
+                order[0] = self_string_table + '.' + order[0]
+                if not ['ASC', 'DESC'].include? order[1]
+                  order[1] = 'ASC'
+                end
+                order = order.join(' ')
+              end
+
             end
 
           else

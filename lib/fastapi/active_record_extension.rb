@@ -38,6 +38,18 @@ module FastAPIExtension
       @fastapi_filters = filters
     end
 
+    # Define custom ORDER BY strings for specific keys
+    #
+    # @param keys [Hash] a hash containing the keys: strings for order filters
+    # @return [Hash] the same keys hash
+    def fastapi_define_order(keys)
+      @fastapi_custom_order = keys
+    end
+
+    def fastapi_custom_order
+      @fastapi_custom_order or {}
+    end
+
     def fastapi_fields
       @fastapi_fields or [:id]
     end
