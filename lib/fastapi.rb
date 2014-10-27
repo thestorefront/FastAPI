@@ -156,7 +156,7 @@ class FastAPI
   #
   # @return [String] available metadata in JSON format
   def meta_json
-    Oj.dump(meta, mode: :compat)
+    Oj.dump(@metadata, mode: :compat)
   end
 
   # Returns both the data and metadata from the most recently executed `filter` or `fetch` call.
@@ -174,6 +174,13 @@ class FastAPI
   # @return [String] JSON data and metadata
   def response
     Oj.dump(self.to_hash, mode: :compat)
+  end
+
+  # Spoofs data from Model
+  #
+  # @return [String] JSON data and metadata
+  def spoof(data, meta)
+
   end
 
   # Returns a JSONified string representing a standardized empty API response, with a provided error message
@@ -451,7 +458,7 @@ class FastAPI
         if comparator == 'in'
           ' IN(' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ')'
         else
-          ' NOT IN(' + (value.map { |value| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ')'
+          ' NOT IN(' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ')'
         end
 
       elsif comparator == 'contains'

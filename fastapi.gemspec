@@ -1,8 +1,8 @@
 Gem::Specification.new do |s|
 
   s.name          = 'fastapi'
-  s.version       = '0.1.9'
-  s.date          = '2014-07-31'
+  s.version       = '0.1.11'
+  s.date          = '2014-10-27'
   s.summary       = 'Easily create robust, standardized API endpoints using lightning-fast database queries'
   s.description   = 'Easily create robust, standardized API endpoints using lightning-fast database queries'
   s.authors       = ['Keith Horwood']
