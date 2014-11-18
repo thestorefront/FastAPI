@@ -112,7 +112,7 @@ class FastAPI
     end
 
     if result[:total] == 0
-      error = @model.to_s + ' id does not exist'
+      error = {message: @model.to_s + ' id does not exist'}
     else
       error = result[:error]
     end
@@ -179,8 +179,44 @@ class FastAPI
   # Spoofs data from Model
   #
   # @return [String] JSON data and metadata
-  def spoof(data, meta)
+  def spoof(data = [], meta = {})
 
+    if not meta.has_key? :total
+      meta[:total] = data.count
+    end
+
+    if not meta.has_key? :offset
+      meta[:offset] = 0
+    end
+
+    if not meta.has_key? :count
+      meta[:count] = data.count
+    end
+
+    Oj.dump({
+      meta: meta,
+      data: data
+    }, mode: :compat)
+
+  end
+
+  # Returns a JSONified string representing a rejected API response with invalid fields parameters
+  #
+  # @param fields [Hash] Hash containing fields and their related errors
+  # @return [String] JSON data and metadata, with error
+  def invalid(fields)
+    Oj.dump({
+      meta: {
+        total: 0,
+        offset: 0,
+        count: 0,
+        error: {
+          message: 'invalid',
+          fields: fields
+        }
+      },
+      data: [],
+    }, mode: :compat)
   end
 
   # Returns a JSONified string representing a standardized empty API response, with a provided error message
@@ -193,7 +229,9 @@ class FastAPI
         total: 0,
         offset: 0,
         count: 0,
-        error: message.to_s
+        error: {
+          message: message.to_s
+        }
       },
       data: [],
     }, mode: :compat)
@@ -230,7 +268,7 @@ class FastAPI
           total: 0,
           count: 0,
           offset: offset,
-          error: error.message
+          error: {message: error.message}
         }
       end
 
@@ -255,7 +293,7 @@ class FastAPI
           total: 0,
           count: 0,
           offset: offset,
-          error: 'Query failed'
+          error: {message: 'Query failed'}
         }
       end
 
@@ -689,10 +727,26 @@ class FastAPI
       model_lookup = {}
 
       @model.fastapi_fields.each do |field|
+
         if @model.reflect_on_all_associations(:belongs_to).map(&:name).include? field
-          model = field.to_s.classify.constantize
-          model_lookup[field] = model
-          belongs << model
+
+          class_name = @model.reflect_on_association(field).options[:class_name]
+
+          if class_name.nil?
+
+            model = field.to_s.classify.constantize
+            model_lookup[field] = model
+            belongs << {model: model, alias: field}
+
+          else
+
+            model = class_name.constantize
+            model_lookup[field] = model
+
+            belongs << {model: model, alias: field}
+
+          end
+
         elsif @model.reflect_on_all_associations(:has_many).map(&:name).include? field
           model = field.to_s.singularize.classify.constantize
           model_lookup[field] = model
@@ -700,6 +754,7 @@ class FastAPI
         elsif @model.column_names.include? field.to_s
           fields << field
         end
+
       end
 
       self_string = @model.to_s.tableize.singularize
@@ -725,16 +780,18 @@ class FastAPI
       end
 
       # Belongs fields (1 to 1)
-      belongs.each do |model|
+      belongs.each do |model_data|
 
-        model_string_field = model.to_s.tableize.singularize
-        model_string_table = model.to_s.tableize
+        model_string_table = model_data[:model].to_s.tableize
+        model_string_table_alias = model_data[:alias].to_s.pluralize
+
+        model_string_field = model_data[:alias].to_s
 
         # fields
-        model.fastapi_fields_sub.each do |field|
+        model_data[:model].fastapi_fields_sub.each do |field|
           field_string = field.to_s
           field_list << [
-            model_string_table,
+            model_string_table_alias,
             '.',
             field_string,
             ' as ',
@@ -748,8 +805,10 @@ class FastAPI
         joins << [
           'LEFT JOIN',
             model_string_table,
+          'AS',
+            model_string_table_alias,
           'ON',
-            model_string_table + '.id',
+            model_string_table_alias + '.id',
             '=',
             self_string_table + '.' + model_string_field + '_id'
         ].join(' ')
