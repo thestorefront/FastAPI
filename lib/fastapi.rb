@@ -591,9 +591,11 @@ class FastAPI
 
       filter_array = []
       filter_has_many = {}
+      filter_belongs_to = {}
 
       order = nil
       order_has_many = {}
+      order_belongs_to = {}
 
       if filters.size > 0
 
@@ -652,12 +654,23 @@ class FastAPI
 
             end
 
-            if model.nil? and self_obj.reflect_on_all_associations(:has_many).map(&:name).include? key
+            if model.nil?
 
-              filter_result = parse_filters(value, safe, field.singularize.classify.constantize)
-              # puts filter_result
-              filter_has_many[key] = filter_result[:main]
-              order_has_many[key] = filter_result[:main_order]
+              if self_obj.reflect_on_all_associations(:has_many).map(&:name).include? key
+
+                filter_result = parse_filters(value, safe, field.singularize.classify.constantize)
+                # puts filter_result
+                filter_has_many[key] = filter_result[:main]
+                order_has_many[key] = filter_result[:main_order]
+
+              elsif self_obj.reflect_on_all_associations(:belongs_to).map(&:name).include? key
+
+                filter_result = parse_filters(value, safe, field.singularize.classify.constantize)
+                # puts filter_result
+                filter_belongs_to[key] = filter_result[:main]
+                order_belongs_to[key] = filter_result[:main_order]
+
+              end
 
             elsif self_obj.column_names.include? field
 
@@ -713,7 +726,9 @@ class FastAPI
         main: filter_array,
         main_order: order,
         has_many: filter_has_many,
-        has_many_order: order_has_many
+        has_many_order: order_has_many,
+        belongs_to: filter_belongs_to,
+        belongs_to_order: order_belongs_to
       }
 
     end
