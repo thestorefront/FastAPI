@@ -529,7 +529,7 @@ class FastAPI
         elsif type == :boolean
           val = {
             't' => true,
-            'f' => false,
+            'f' => false
           }[val]
         end
       end
@@ -664,10 +664,12 @@ class FastAPI
               if self_obj.columns_hash[field].type == :boolean
 
                 if !!value != value
-                  value = {
+                  value = ({
                     't' => true,
-                    'f' => false
-                  }[value]
+                    'f' => false,
+                    'true' => true,
+                    'false' => false
+                  }[value] or true)
                 end
 
                 if !!value == value
