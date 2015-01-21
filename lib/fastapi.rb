@@ -543,7 +543,7 @@ class FastAPI
       self_obj = model.nil? ? @model : model
       self_string_table = model.nil? ? @model.to_s.tableize : '__' + model.to_s.tableize
 
-      filters = filters.clone()
+      filters = filters.clone().symbolize_keys
       # if we're at the top level...
       if model.nil?
 
@@ -579,9 +579,9 @@ class FastAPI
         found_index = key.to_s.rindex('__')
         key_root = found_index.nil? ? key : key.to_s[0...found_index].to_sym
         if not self_obj.column_names.include? key_root.to_s
-          if not model.nil? or (
-            not @model.reflect_on_all_associations(:has_many).map(&:name).include? key_root and
-            not @model.reflect_on_all_associations(:belongs_to).map(&:name).include? key_root
+          if not model.nil? or not (
+            @model.reflect_on_all_associations(:has_many).map(&:name).include? key_root or
+            @model.reflect_on_all_associations(:belongs_to).map(&:name).include? key_root
           )
             raise 'Filter "' + key.to_s + '" not supported'
           end
@@ -670,47 +670,57 @@ class FastAPI
                 filter_belongs_to[key] = filter_result[:main]
                 order_belongs_to[key] = filter_result[:main_order]
 
-              end
+              elsif self_obj.column_names.include? field
 
-            elsif self_obj.column_names.include? field
+                if self_obj.columns_hash[field].type == :boolean
 
-              if self_obj.columns_hash[field].type == :boolean
+                  if !!value != value
 
-                if !!value != value
-                  value = ({
-                    't' => true,
-                    'f' => false,
-                    'true' => true,
-                    'false' => false
-                  }[value] or true)
-                end
+                    bool_lookup = {
+                      't' => true,
+                      'f' => false,
+                      'true' => true,
+                      'false' => false
+                    }
 
-                if !!value == value
+                    value = value.to_s.downcase
 
-                  if comparator == 'is'
-                    filter_array << self_string_table + '.' + field + ' IS ' + value.to_s.upcase
-                  elsif comparator == 'not'
-                    filter_array << self_string_table + '.' + field + ' IS NOT ' + value.to_s.upcase
+                    if bool_lookup.has_key? value
+                      value = bool_lookup[value]
+                    else
+                      value = true
+                    end
+
                   end
 
+                  if !!value == value
+
+                    if comparator == 'is'
+                      filter_array << self_string_table + '.' + field + ' IS ' + value.to_s.upcase
+                    elsif comparator == 'not'
+                      filter_array << self_string_table + '.' + field + ' IS NOT ' + value.to_s.upcase
+                    end
+
+                  end
+
+                elsif value == nil and comparator != 'is_null' and comparator != 'not_null'
+
+                  if comparator == 'is'
+                    filter_array << self_string_table + '.' + field + ' IS NULL'
+                  elsif comparator == 'not'
+                    filter_array << self_string_table + '.' + field + ' IS NOT NULL'
+                  end
+
+                elsif value.is_a? Range and comparator == 'is'
+
+                  filter_array << self_string_table + '.' + field + ' >= ' + ActiveRecord::Base.connection.quote(value.first.to_s)
+                  filter_array << self_string_table + '.' + field + ' <= ' + ActiveRecord::Base.connection.quote(value.last.to_s)
+
+                else
+
+                  filter_array << self_string_table + '.' + field + api_comparison(comparator, value)
+
                 end
-
-              elsif value == nil and comparator != 'is_null' and comparator != 'not_null'
-
-                if comparator == 'is'
-                  filter_array << self_string_table + '.' + field + ' IS NULL'
-                elsif comparator == 'not'
-                  filter_array << self_string_table + '.' + field + ' IS NOT NULL'
-                end
-
-              elsif value.is_a? Range and comparator == 'is'
-
-                filter_array << self_string_table + '.' + field + ' >= ' + ActiveRecord::Base.connection.quote(value.first.to_s)
-                filter_array << self_string_table + '.' + field + ' <= ' + ActiveRecord::Base.connection.quote(value.last.to_s)
-
-              else
-
-                filter_array << self_string_table + '.' + field + api_comparison(comparator, value)
 
               end
 
