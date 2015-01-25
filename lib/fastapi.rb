@@ -45,11 +45,7 @@ class FastAPI
 
     result = fastapi_query(filters)
 
-    metadata = {}
-
-    meta.each do |key, value|
-      metadata[key] = value
-    end
+    metadata = {}.merge meta
 
     metadata[:total] = result[:total]
     metadata[:offset] = result[:offset]
@@ -75,11 +71,7 @@ class FastAPI
 
     result = fastapi_query(filters, true)
 
-    metadata = {}
-
-    meta.each do |key, value|
-      metadata[key] = value
-    end
+    metadata = {}.merge meta
 
     metadata[:total] = result[:total]
     metadata[:offset] = result[:offset]
@@ -105,17 +97,14 @@ class FastAPI
 
     result = fastapi_query({id: id})
 
-    metadata = {}
+    metadata = {}.merge meta
 
-    meta.each do |key, value|
-      metadata[key] = value
-    end
-
-    if result[:total] == 0
-      error = {message: @model.to_s + ' id does not exist'}
-    else
-      error = result[:error]
-    end
+    error =
+      if result[:total] == 0
+        {message: @model.to_s + ' id does not exist'}
+      else
+        result[:error]
+      end
 
     metadata[:total] = result[:total]
     metadata[:offset] = result[:offset]
@@ -181,17 +170,9 @@ class FastAPI
   # @return [String] JSON data and metadata
   def spoof(data = [], meta = {})
 
-    if not meta.has_key? :total
-      meta[:total] = data.count
-    end
-
-    if not meta.has_key? :offset
-      meta[:offset] = 0
-    end
-
-    if not meta.has_key? :count
-      meta[:count] = data.count
-    end
+    meta[:total] ||= data.count
+    meta[:offset] ||= 0
+    meta[:count] ||= data.count
 
     Oj.dump({
       meta: meta,
@@ -246,29 +227,18 @@ class FastAPI
         raise 'Fast API only supports PostgreSQL at this time'
       end
 
-      offset = 0
-      count = 500
-      order = nil
-
-      if filters.has_key? :__offset
-        offset = filters[:__offset].to_i
-        filters.delete(:__offset)
-      end
-
-      if filters.has_key? :__count
-        count = [1, [500, filters[:__count].to_i].min].max
-        filters.delete(:__count)
-      end
+      offset = (filters.delete(:__offset) { |x| 0 }).to_i
+      count = [1, [500, (filters.delete(:__count) { |x| 500 }).to_i].min].max
 
       begin
         prepared_data = api_generate_sql(filters, offset, count, safe)
-      rescue Exception => error
+      rescue StandardError => exception
         return {
           data: [],
           total: 0,
           count: 0,
           offset: offset,
-          error: {message: error.message}
+          error: {message: exception.message}
         }
       end
 
@@ -278,11 +248,11 @@ class FastAPI
         model_lookup[key] = {
           model: model,
           fields: model.fastapi_fields_sub,
-          types: model.fastapi_fields_sub.map { |field| (columns_hash.has_key? field.to_s) ? columns_hash[field.to_s].type : nil },
+          types: model.fastapi_fields_sub.map { |field| (columns_hash.has_key? field.to_s) ? columns_hash[field.to_s].type : nil }, #FIXME use .try
         }
       end
 
-      error = nil
+      error = {}
 
       begin
         count_result = ActiveRecord::Base.connection.execute(prepared_data[:count_query])
@@ -307,7 +277,7 @@ class FastAPI
       dataset = Array.new(rows.size)
 
       rows.each_with_index do |row, index|
-        currow = {}
+        cur_row = {}
         row.each_with_index do |val, key_index|
 
           field = fields[key_index]
@@ -319,10 +289,10 @@ class FastAPI
             field_sym = field.to_sym
             model = model_lookup[field_sym]
 
-            currow[field_sym] = parse_many(
+            cur_row[field_sym] = parse_many(
               val,
-              model_lookup[field_sym][:fields],
-              model_lookup[field_sym][:types]
+              model[:fields],
+              model[:types]
             )
 
           elsif split_index
@@ -331,21 +301,18 @@ class FastAPI
             field = field[split_index + 2..-1]
             model = model_lookup[obj_name][:model]
 
-            if !(currow.has_key? obj_name)
-              currow[obj_name] = {}
-            end
-
-            currow[obj_name][field.to_sym] = api_convert_type(val, model.columns_hash[field].type)
+            cur_row[obj_name] ||= {}
+            cur_row[obj_name][field.to_sym] = api_convert_type(val, model.columns_hash[field].type)
 
           elsif @model.columns_hash[field]
 
-            currow[field.to_sym] = api_convert_type(val, @model.columns_hash[field].type)
+            cur_row[field.to_sym] = api_convert_type(val, @model.columns_hash[field].type)
 
           end
 
         end
 
-        dataset[index] = currow
+        dataset[index] = cur_row
 
       end
 
@@ -358,7 +325,7 @@ class FastAPI
         total: total_size,
         count: dataset.size,
         offset: offset,
-        error: nil
+        error: {}
       }
 
     end
@@ -373,10 +340,7 @@ class FastAPI
       len = str.length
 
       i = str.index('(')
-
-      if not i
-        return rows
-      end
+      return rows unless i
 
       i = i + 1
 
@@ -418,22 +382,13 @@ class FastAPI
 
         else
 
-          if c == ','
-            i = i + 1
-          end
+          i = i + 1 if c == ','
 
-          parensIndex = str.index(')', i)
-          nextIndex = str.index(',', i)
+          parensIndex = str.index(')', i) || i
+          nextIndex = [str.index(',', i) || parensIndex,  parensIndex].min
 
-          if nextIndex.nil? or nextIndex > parensIndex
-            nextIndex = parensIndex
-          end
-
-          if i == nextIndex
-            cur_row[fields[entry_index]] = nil
-          else
-            cur_row[fields[entry_index]] = api_convert_type(str[i...nextIndex], types[entry_index])
-          end
+          cur_row[fields[entry_index]] =
+            i == nextIndex ? nil : api_convert_type(str[i...nextIndex], types[entry_index])
 
           entry_index = entry_index + 1
 
@@ -455,130 +410,96 @@ class FastAPI
     end
 
 
+    SQL_COMPARATORS =
+      {
+        'is' => ' = _ar_value',
+        'not' => ' <> _ar_value',
+        'gt' => ' > _ar_value',
+        'gte' => ' >= _ar_value',
+        'lt' => ' < _ar_value',
+        'lte' => ' <= _ar_value',
+        'contains' => ' LIKE \'%\' || _ar_value || \'%\'',
+        'icontains' => ' ILIKE \'%\' || _ar_value || \'%\'',
+        'is_null' => ' IS NULL _ar_value',
+        'not_null' => ' IS NOT NULL _ar_value',
+      }
+
+    IN_COMPARATORS =
+      {
+        'in' => ' IN(',
+        'not_in' => ' NOT IN('
+      }
+
     def api_comparison(comparator, value)
 
-      if comparator == 'is'
-
-        ' = ' + ActiveRecord::Base.connection.quote(value.to_s)
-
-      elsif comparator == 'not'
-
-        ' <> ' + ActiveRecord::Base.connection.quote(value.to_s)
-
-      elsif comparator == 'gt'
-
-        ' > ' + ActiveRecord::Base.connection.quote(value.to_s)
-
-      elsif comparator == 'gte'
-
-        ' >= ' + ActiveRecord::Base.connection.quote(value.to_s)
-
-      elsif comparator == 'lt'
-
-        ' < ' + ActiveRecord::Base.connection.quote(value.to_s)
-
-      elsif comparator == 'lte'
-
-        ' <= ' + ActiveRecord::Base.connection.quote(value.to_s)
-
-      elsif comparator == 'in' or comparator == 'not_in'
-
-        if not value.is_a? Array
-
-          if value.is_a? Range
-            value = value.to_a
-          else
-            value = [value.to_s]
-          end
-
-        end
-
-        if comparator == 'in'
-          ' IN(' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ')'
-        else
-          ' NOT IN(' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ')'
-        end
-
-      elsif comparator == 'contains'
-
-        ' LIKE \'%\' || ' + ActiveRecord::Base.connection.quote(value.to_s) + ' || \'%\''
-
-      elsif comparator == 'icontains'
-
-        ' ILIKE \'%\' || ' + ActiveRecord::Base.connection.quote(value.to_s) + ' || \'%\''
-
-      elsif comparator == 'is_null'
-
-        ' IS NULL'
-
-      elsif comparator == 'not_null'
-
-        ' IS NOT NULL'
-
+      if sql_comparator = SQL_COMPARATORS[comparator]
+        sql_comparator.sub('_ar_value', ActiveRecord::Base.connection.quote(value.to_s))
+      elsif in_comparator = IN_COMPARATORS[comparator]
+        value = (value.is_a? Range ? value.to_a : [value.to_s]) unless value.is_a? Array
+        in_comparator +
+          value.map do |val|
+            ActiveRecord::Base.connection.quote(val.to_s)
+          end.join(',') + ')'
+      else
+        nil # ? or raise error since not a valid comparator
       end
-
     end
 
     def api_convert_type(val, type)
 
-      if not val.nil?
-        if type == :integer
-          val = val.to_i
-        elsif type == :float
-          val = val.to_f
-        elsif type == :boolean
-          val = {
+      unless val.nil?
+        case type
+        when :integer
+          val.to_i
+        when :float
+          val.to_f
+        when :boolean
+          {
             't' => true,
-            'f' => false
+            'f' => false,
+            'true' => true,
+            'false' => false
           }[val]
+        else
+          val
         end
       end
-
-      val
 
     end
 
     def parse_filters(filters, safe = false, model = nil)
 
-      self_obj = model.nil? ? @model : model
-      self_string_table = model.nil? ? @model.to_s.tableize : '__' + model.to_s.tableize
+      self_obj = model || @model
+      self_string_table = (model ? '__' + model : @model).to_s.tableize
 
       filters = filters.clone().symbolize_keys
       # if we're at the top level...
-      if model.nil?
+      unless model
 
         if safe
           filters.each do |key, value|
             found_index = key.to_s.rindex('__')
-            key_root = found_index.nil? ? key : key.to_s[0...found_index].to_sym
+            key_root = found_index ? key.to_s[0...found_index].to_sym : key
             if not [:__order, :__offset, :__count].include? key and not self_obj.fastapi_fields_whitelist.include? key_root
               raise 'Filter "' + key.to_s + '" not supported'
             end
           end
         end
 
-        all_filters = @model.fastapi_filters.clone()
-
-        filters.each do |field, value|
-          all_filters[field.to_sym] = value
-        end
-
-        filters = all_filters
+        filters = @model.fastapi_filters.clone().merge(filters)
 
       end
 
-      if not filters.has_key? :__order
-        filters[:__order] = [:created_at, :DESC]
-      end
+      filters[:__order] ||= [:created_at, :DESC]
 
 
       filters.each do |key, value|
-        if [:__order, :__offset, :__count].include? key
-          next
-        end
+        next if [:__order, :__offset, :__count].include? key
+
         found_index = key.to_s.rindex('__')
-        key_root = found_index.nil? ? key : key.to_s[0...found_index].to_sym
-        if not self_obj.column_names.include? key_root.to_s
+        key_root = found_index ? key.to_s[0...found_index].to_sym : key
+
+        unless self_obj.column_names.include? key_root.to_s
           if not model.nil? or not (
             @model.reflect_on_all_associations(:has_many).map(&:name).include? key_root or
             @model.reflect_on_all_associations(:belongs_to).map(&:name).include? key_root
@@ -625,14 +546,12 @@ class FastAPI
                 order = ['', '']
               end
 
-              if not self_obj.column_names.include? order[0]
-                order = nil
-              else
+              if self_obj.column_names.include? order[0]
                 order[0] = self_string_table + '.' + order[0]
-                if not ['ASC', 'DESC'].include? order[1]
-                  order[1] = 'ASC'
-                end
+                order[1] = 'ASC' unless ['ASC', 'DESC'].include? order[1]
                 order = order.join(' ')
+              else
+                order = nil
               end
 
             end
@@ -648,13 +567,11 @@ class FastAPI
               comparator = field[(field.rindex('__') + 2)..-1]
               field = field[0...field.rindex('__')]
 
-              if not @@api_comparator_list.include? comparator
-                next # skip dis bro
-              end
+              next unless @@api_comparator_list.include? comparator
 
             end
 
-            if model.nil?
+            unless model
 
               if self_obj.reflect_on_all_associations(:has_many).map(&:name).include? key
 
@@ -683,13 +600,7 @@ class FastAPI
                       'false' => false
                     }
 
-                    value = value.to_s.downcase
-
-                    if bool_lookup.has_key? value
-                      value = bool_lookup[value]
-                    else
-                      value = true
-                    end
+                    value = bool_lookup[value.to_s.downcase] || true
 
                   end
 
@@ -758,21 +669,9 @@ class FastAPI
         if @model.reflect_on_all_associations(:belongs_to).map(&:name).include? field
 
           class_name = @model.reflect_on_association(field).options[:class_name]
-
-          if class_name.nil?
-
-            model = field.to_s.classify.constantize
-            model_lookup[field] = model
-            belongs << {model: model, alias: field}
-
-          else
-
-            model = class_name.constantize
-            model_lookup[field] = model
-
-            belongs << {model: model, alias: field}
-
-          end
+          model = class_name ? class_name.constantize : field.to_s.classify.constantize
+          model_lookup[field] = model
+          belongs << {model: model, alias: field}
 
         elsif @model.reflect_on_all_associations(:has_many).map(&:name).include? field
           model = field.to_s.singularize.classify.constantize
@@ -864,7 +763,7 @@ class FastAPI
         has_many_order = ''
         if filters[:has_many].has_key? model_symbol
           has_many_filters = 'AND ' + filters[:has_many][model_symbol].join(' AND ')
-          if not filters[:has_many_order][model_symbol].nil?
+          unless filters[:has_many_order][model_symbol]
             has_many_order = 'ORDER BY ' + filters[:has_many_order][model_symbol]
           end
         end

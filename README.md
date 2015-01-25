@@ -22,7 +22,7 @@ The repository is located at [thestorefront/fastapi_example](http://github.com/t
 
 This gem requires Oj 2.9.9 for JSONification, and Rails (>= 3.2).
 
-FastAPI currently supports PostegreSQL as a data layer.
+FastAPI currently supports PostgreSQL as a data layer.
 
 
 # Installation
