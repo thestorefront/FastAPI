@@ -27,7 +27,6 @@ class FastAPI
     @model = model
     @data = nil
     @metadata = nil
-    @has_results = false
     @result_type = 0
   end
 
@@ -41,7 +40,7 @@ class FastAPI
   # @param filters [Hash] a hash containing the intended filters
   # @param meta [Hash] a hash containing custom metadata
   # @return [FastAPI] the current instance
-  def filter(filters = {}, meta = {})
+  def filter(filters = {}, meta = {}, safe=false)
 
     result = fastapi_query(filters)
 
@@ -73,23 +72,7 @@ class FastAPI
   # @return [FastAPI] the current instance
   def safe_filter(filters = {}, meta = {})
 
-    result = fastapi_query(filters, true)
-
-    metadata = {}
-
-    meta.each do |key, value|
-      metadata[key] = value
-    end
-
-    metadata[:total] = result[:total]
-    metadata[:offset] = result[:offset]
-    metadata[:count] = result[:count]
-    metadata[:error] = result[:error]
-
-    @metadata = metadata
-    @data = result[:data]
-
-    @result_type = @@result_types[:multiple]
+    filter(filters, meta, true)
 
     self
 
