@@ -86,29 +86,11 @@ class FastAPI
   # @return [FastAPI] the current instance
   def fetch(id, meta = {})
 
-    result = fastapi_query({id: id})
+    filter({id: id}, meta)
 
-    metadata = {}
-
-    meta.each do |key, value|
-      metadata[key] = value
+    if @metadata[:total] == 0
+      @metadata[:error] = {message: @model.to_s + ' id does not exist'}
     end
-
-    if result[:total] == 0
-      error = {message: @model.to_s + ' id does not exist'}
-    else
-      error = result[:error]
-    end
-
-    metadata[:total] = result[:total]
-    metadata[:offset] = result[:offset]
-    metadata[:count] = result[:count]
-    metadata[:error] = error
-
-    @metadata = metadata
-    @data = result[:data]
-
-    @result_type = @@result_types[:multiple]
 
     self
 
