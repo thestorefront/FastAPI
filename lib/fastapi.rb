@@ -760,19 +760,13 @@ class FastAPI
           class_name = @model.reflect_on_association(field).options[:class_name]
 
           if class_name.nil?
-
             model = field.to_s.classify.constantize
-            model_lookup[field] = model
-            belongs << {model: model, alias: field}
-
           else
-
             model = class_name.constantize
-            model_lookup[field] = model
-
-            belongs << {model: model, alias: field}
-
           end
+            
+          model_lookup[field] = model
+          belongs << {model: model, alias: field}
 
         elsif @model.reflect_on_all_associations(:has_many).map(&:name).include? field
           model = field.to_s.singularize.classify.constantize
