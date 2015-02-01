@@ -40,9 +40,9 @@ class FastAPI
   # @param filters [Hash] a hash containing the intended filters
   # @param meta [Hash] a hash containing custom metadata
   # @return [FastAPI] the current instance
-  def filter(filters = {}, meta = {}, safe=false)
+  def filter(filters = {}, meta = {}, safe = false)
 
-    result = fastapi_query(filters)
+    result = fastapi_query(filters, safe)
 
     metadata = {}
 
