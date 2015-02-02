@@ -27,7 +27,6 @@ class FastAPI
     @model = model
     @data = nil
     @metadata = nil
-    @has_results = false
     @result_type = 0
   end
 
@@ -41,9 +40,9 @@ class FastAPI
   # @param filters [Hash] a hash containing the intended filters
   # @param meta [Hash] a hash containing custom metadata
   # @return [FastAPI] the current instance
-  def filter(filters = {}, meta = {})
+  def filter(filters = {}, meta = {}, safe = false)
 
-    result = fastapi_query(filters)
+    result = fastapi_query(filters, safe)
 
     metadata = {}
 
@@ -73,23 +72,7 @@ class FastAPI
   # @return [FastAPI] the current instance
   def safe_filter(filters = {}, meta = {})
 
-    result = fastapi_query(filters, true)
-
-    metadata = {}
-
-    meta.each do |key, value|
-      metadata[key] = value
-    end
-
-    metadata[:total] = result[:total]
-    metadata[:offset] = result[:offset]
-    metadata[:count] = result[:count]
-    metadata[:error] = result[:error]
-
-    @metadata = metadata
-    @data = result[:data]
-
-    @result_type = @@result_types[:multiple]
+    filter(filters, meta, true)
 
     self
 
@@ -103,29 +86,11 @@ class FastAPI
   # @return [FastAPI] the current instance
   def fetch(id, meta = {})
 
-    result = fastapi_query({id: id})
+    filter({id: id}, meta)
 
-    metadata = {}
-
-    meta.each do |key, value|
-      metadata[key] = value
+    if @metadata[:total] == 0
+      @metadata[:error] = {message: @model.to_s + ' id does not exist'}
     end
-
-    if result[:total] == 0
-      error = {message: @model.to_s + ' id does not exist'}
-    else
-      error = result[:error]
-    end
-
-    metadata[:total] = result[:total]
-    metadata[:offset] = result[:offset]
-    metadata[:count] = result[:count]
-    metadata[:error] = error
-
-    @metadata = metadata
-    @data = result[:data]
-
-    @result_type = @@result_types[:multiple]
 
     self
 
@@ -760,19 +725,13 @@ class FastAPI
           class_name = @model.reflect_on_association(field).options[:class_name]
 
           if class_name.nil?
-
             model = field.to_s.classify.constantize
-            model_lookup[field] = model
-            belongs << {model: model, alias: field}
-
           else
-
             model = class_name.constantize
-            model_lookup[field] = model
-
-            belongs << {model: model, alias: field}
-
           end
+            
+          model_lookup[field] = model
+          belongs << {model: model, alias: field}
 
         elsif @model.reflect_on_all_associations(:has_many).map(&:name).include? field
           model = field.to_s.singularize.classify.constantize
