@@ -10,16 +10,24 @@ module FastAPIExtension
     #
     # @param fields [Array] a list of fields in the form of symbols
     # @return [Array] the same array of fields
-    def fastapi_standard_interface(fields)
-      @fastapi_fields = fields
+    def fastapi_standard_interface(fields, options = {})
+      if fields == :all
+        @fastapi_fields = attributes(options)
+      else
+        @fastapi_fields = fields
+      end
     end
 
     # Used to set the standard interface for the second level of a fastapi response (nested)
     #
     # @param fields [Array] a list of fields in the form of symbols
     # @return [Array] the same array of fields
-    def fastapi_standard_interface_nested(fields)
-      @fastapi_fields_sub = fields
+    def fastapi_standard_interface_nested(fields, options = {})
+      if fields == :all
+        @fastapi_fields_sub = attributes(options.merge({associations: false}))
+      else
+        @fastapi_fields_sub = fields
+      end
     end
 
     # Set safe fields for FastAPIInstance.safe_filter
@@ -70,8 +78,34 @@ module FastAPIExtension
       FastAPI.new(self)
     end
 
-  end
+    private
+    def default_options
+      @@opts ||= { except: [], timestamps: false, foreign_keys: false, associations: true }
+    end
 
+    def attributes(options)
+      options.reverse_merge!(default_options)
+      names = self.attribute_names.map(&:to_sym)
+
+      names -= foreign_keys unless options[:foreign_keys]
+      names -= timestamps   unless options[:timestamps]
+      names += associations if     options[:associations]
+
+      names -= [*options[:except]]
+    end
+
+    def associations
+      self.reflections.keys.map(&:to_sym)
+    end
+
+    def foreign_keys
+      self.reflections.map { |k, v| v.foreign_key.to_sym }
+    end
+
+    def timestamps
+      [:created_at, :created_on, :updated_at, :updated_on]
+    end
+  end
 end
 
 ActiveRecord::Base.send(:include, FastAPIExtension)
