@@ -24,7 +24,7 @@ module FastAPIExtension
     # @return [Array] the same array of fields
     def fastapi_standard_interface_nested(fields, options = {})
       if fields == :all
-        @fastapi_fields_sub = attributes(options.merge({associations: false}))
+        @fastapi_fields_sub = attributes(options.merge({ associations: false }))
       else
         @fastapi_fields_sub = fields
       end
