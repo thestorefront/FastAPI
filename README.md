@@ -100,6 +100,20 @@ class Bucket < ActiveRecord::Base
   has_many :marbles
 
   # A "standard interface" is a list of user-exposed fields for the endpoint
+  fastapi_standard_interface :all
+
+end
+```
+
+You can also enumerate each field you'd like to add to the interface:
+
+```ruby
+class Bucket < ActiveRecord::Base
+
+  belongs_to :person
+  has_many :marbles
+
+  # adding the fields by providing an array of symbols
   fastapi_standard_interface [
     :id,
     :color,
@@ -120,24 +134,18 @@ class Person < ActiveRecord::Base
   #   endpoint... we use a special setting indicating
   #   which fields to use if Person happens to be nested.
 
-  # You can NOT include dependent fields here. (belongs_to, has_many)
+  # Dependent fields will not be included here. (belongs_to, has_many)
   #   This is a hard-and-fast FastAPI rule that prevents overly
   #   complex nesting scenarios.
 
-  fastapi_standard_interface_nested [
-    :id,
-    :name,
-    :gender,
-    :age
-  ]
-
+  fastapi_standard_interface_nested :all
 end
 ```
 
 Keep in mind that this will only affect the cases where `Person` is a nested
 object.
 
-If we wanted to expose a top-level `Person` api endpoint, we would use
+If we wanted to expose a top-level `Person` API endpoint, we would use
 `fastapi_standard_interface` as well.
 
 Finally, we must modify our `Marble` model in the same way:
@@ -145,11 +153,7 @@ Finally, we must modify our `Marble` model in the same way:
 ```ruby
 class Marble < ActiveRecord::Base
 
-  fastapi_standard_interface_nested [
-    :id,
-    :color,
-    :radius
-  ]
+  fastapi_standard_interface_nested :all
 
 end
 ```
@@ -231,24 +235,39 @@ FastAPI has four core components:
 ### ClassMethods
 
 #### fastapi_standard_interface
+Has two method signatures that are used to set the standard interface
+for the top level of a FastAPI response.
+
+`fastapi_standard_interface( :all, { except: [], timestamps: false, foreign_keys: false, associations: true } )`
+
+Includes attributes and associations for the model. Use the options hash
+if you need to further specify which fields are included. By default, timestamps
+and foreign keys are not included, but associated models are.
+
 `fastapi_standard_interface( fields [Array] )`
 
-Sets the standard interface for the top level of a fastapi response.
 Can use any available fields for the model, or `belongs_to` and `has_many`
 associations. Be sure to use the correct word form (singular vs. plural).
 
 #### fastapi_standard_interface_nested
+Has two method signatures that are used to set the standard interface for the second
+level of a FastAPI response (nested). Will be referred to whenever this model is
+found nested in another API response. *Does not support associations*.
+
+`fastapi_standard_interface_nested( :all, { except: [], timestamps: false, foreign_keys: false } )`
+
+Includes attributes for the model. Use the options hash if you need to
+further specify which fields are included. By default, timestamps and
+foreign keys are not included.
+
 `fastapi_standard_interface_nested( fields [Array] )`
 
-Sets the standard interface for the second level of a fastapi response
-(nested). Will be referred to whenever this model is found nested in another
-API response. Can use any available fields for the model, *does not support
-associations*.
+Can use any available fields for the model.
 
 #### fastapi_default_filters
 `fastapi_default_filters( filters [Hash] )`
 
-Sets any default filters for the top level fastapi response. Will be
+Sets any default filters for the top level FastAPI response. Will be
 overridden if the same filter keys are provided when calling `.filter` on
 a FastAPI instance. See *Filters* section for more information on available
 filters.
