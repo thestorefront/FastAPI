@@ -536,21 +536,36 @@ class FastAPI
         filters[:__order] = [:created_at, :DESC]
       end
 
+      params = []
+
+      if filters.has_key? :__params
+        params = filters[:__params]
+        filters.delete :__params
+      end
+
+      if not params.is_a? Array and not params.is_a? Hash
+        params = [params]
+      end
 
       filters.each do |key, value|
-        if [:__order, :__offset, :__count].include? key
+
+        if [:__order, :__offset, :__count, :__params].include? key
           next
         end
+
         found_index = key.to_s.rindex('__')
         key_root = found_index.nil? ? key : key.to_s[0...found_index].to_sym
+
         if not self_obj.column_names.include? key_root.to_s
           if not model.nil? or not (
             @model.reflect_on_all_associations(:has_many).map(&:name).include? key_root or
-            @model.reflect_on_all_associations(:belongs_to).map(&:name).include? key_root
+            @model.reflect_on_all_associations(:belongs_to).map(&:name).include? key_root or
+            @model.reflect_on_all_associations(:has_one).map(&:name).include? key_root
           )
             raise 'Filter "' + key.to_s + '" not supported'
           end
         end
+
       end
 
 
@@ -562,130 +577,155 @@ class FastAPI
       order_has_many = {}
       order_belongs_to = {}
 
+      # get the order first
+
+      if filters.has_key? :__order
+
+        value = filters[:__order]
+
+        order = value.clone()
+
+        if order.is_a? String
+          order = order.split(',')
+          if order.size < 2
+            order << 'ASC'
+          end
+        elsif order.is_a? Array
+          order = order.map { |v| v.to_s }
+          while order.size < 2
+            order << ''
+          end
+        else
+          order = ['', '']
+        end
+
+        if not ['ASC', 'DESC'].include? order[1]
+          order[1] = 'ASC'
+        end
+
+        if model.nil? and @model.fastapi_custom_order.has_key? order[0].to_sym
+
+          order[0] = @model.fastapi_custom_order[order[0].to_sym].gsub('self.', self_string_table + '.')
+
+          if params.is_a? Array
+
+            order[0] = order[0].gsub(/\$params\[([\w\d_-]+)\]/) { ActiveRecord::Base.connection.quote(params[Regexp.last_match[1].to_i].to_s) }
+
+          else
+
+            order[0] = order[0].gsub(/\$params\[([\w\d_-]+)\]/) { ActiveRecord::Base.connection.quote(params[Regexp.last_match[1]].to_s) }
+
+          end
+
+          order[0] = '(' + order[0] + ')'
+          order = order.join(' ')
+
+        else
+
+          if not self_obj.column_names.include? order[0]
+
+            order = nil
+
+          else
+
+            order[0] = self_string_table + '.' + order[0]
+            order = order.join(' ')
+
+          end
+
+        end
+
+        filters.delete :__order
+
+      end
+
       if filters.size > 0
 
         filters.each do |key, value|
 
-          if key == :__order
+          field = key.to_s
 
-            if model.nil? and (value.is_a? String or value.is_a? Symbol) and @model.fastapi_custom_order.has_key? value.to_sym
+          if field.rindex('__').nil?
 
-              order = @model.fastapi_custom_order[value.to_sym].gsub('self.', self_string_table + '.')
-
-            else
-
-              order = value.clone()
-
-              if order.is_a? String
-                order = order.split(',')
-                if order.size < 2
-                  order << 'ASC'
-                end
-              elsif order.is_a? Array
-                order = order.map { |v| v.to_s }
-                while order.size < 2
-                  order << ''
-                end
-              else
-                order = ['', '']
-              end
-
-              if not self_obj.column_names.include? order[0]
-                order = nil
-              else
-                order[0] = self_string_table + '.' + order[0]
-                if not ['ASC', 'DESC'].include? order[1]
-                  order[1] = 'ASC'
-                end
-                order = order.join(' ')
-              end
-
-            end
+            comparator = 'is'
 
           else
 
-            field = key.to_s
+            comparator = field[(field.rindex('__') + 2)..-1]
+            field = field[0...field.rindex('__')]
 
-            if field.rindex('__').nil?
-              comparator = 'is'
-            else
-
-              comparator = field[(field.rindex('__') + 2)..-1]
-              field = field[0...field.rindex('__')]
-
-              if not @@api_comparator_list.include? comparator
-                next # skip dis bro
-              end
-
+            if not @@api_comparator_list.include? comparator
+              next # skip dis bro
             end
 
-            if model.nil?
+          end
 
-              if self_obj.reflect_on_all_associations(:has_many).map(&:name).include? key
+          if model.nil?
 
-                filter_result = parse_filters(value, safe, field.singularize.classify.constantize)
-                # puts filter_result
-                filter_has_many[key] = filter_result[:main]
-                order_has_many[key] = filter_result[:main_order]
+            if self_obj.reflect_on_all_associations(:has_many).map(&:name).include? key
 
-              elsif self_obj.reflect_on_all_associations(:belongs_to).map(&:name).include? key
+              filter_result = parse_filters(value, safe, field.singularize.classify.constantize)
+              # puts filter_result
+              filter_has_many[key] = filter_result[:main]
+              order_has_many[key] = filter_result[:main_order]
 
-                filter_result = parse_filters(value, safe, field.singularize.classify.constantize)
-                # puts filter_result
-                filter_belongs_to[key] = filter_result[:main]
-                order_belongs_to[key] = filter_result[:main_order]
+            elsif self_obj.reflect_on_all_associations(:belongs_to).map(&:name).include? key or
+              self_obj.reflect_on_all_associations(:has_one).map(&:name).include? key
 
-              elsif self_obj.column_names.include? field
+              filter_result = parse_filters(value, safe, field.singularize.classify.constantize)
+              # puts filter_result
+              filter_belongs_to[key] = filter_result[:main]
+              order_belongs_to[key] = filter_result[:main_order]
 
-                if self_obj.columns_hash[field].type == :boolean
+            elsif self_obj.column_names.include? field
 
-                  if !!value != value
+              if self_obj.columns_hash[field].type == :boolean
 
-                    bool_lookup = {
-                      't' => true,
-                      'f' => false,
-                      'true' => true,
-                      'false' => false
-                    }
+                if !!value != value
 
-                    value = value.to_s.downcase
+                  bool_lookup = {
+                    't' => true,
+                    'f' => false,
+                    'true' => true,
+                    'false' => false
+                  }
 
-                    if bool_lookup.has_key? value
-                      value = bool_lookup[value]
-                    else
-                      value = true
-                    end
+                  value = value.to_s.downcase
 
+                  if bool_lookup.has_key? value
+                    value = bool_lookup[value]
+                  else
+                    value = true
                   end
-
-                  if !!value == value
-
-                    if comparator == 'is'
-                      filter_array << self_string_table + '.' + field + ' IS ' + value.to_s.upcase
-                    elsif comparator == 'not'
-                      filter_array << self_string_table + '.' + field + ' IS NOT ' + value.to_s.upcase
-                    end
-
-                  end
-
-                elsif value == nil and comparator != 'is_null' and comparator != 'not_null'
-
-                  if comparator == 'is'
-                    filter_array << self_string_table + '.' + field + ' IS NULL'
-                  elsif comparator == 'not'
-                    filter_array << self_string_table + '.' + field + ' IS NOT NULL'
-                  end
-
-                elsif value.is_a? Range and comparator == 'is'
-
-                  filter_array << self_string_table + '.' + field + ' >= ' + ActiveRecord::Base.connection.quote(value.first.to_s)
-                  filter_array << self_string_table + '.' + field + ' <= ' + ActiveRecord::Base.connection.quote(value.last.to_s)
-
-                else
-
-                  filter_array << self_string_table + '.' + field + api_comparison(comparator, value)
 
                 end
+
+                if !!value == value
+
+                  if comparator == 'is'
+                    filter_array << self_string_table + '.' + field + ' IS ' + value.to_s.upcase
+                  elsif comparator == 'not'
+                    filter_array << self_string_table + '.' + field + ' IS NOT ' + value.to_s.upcase
+                  end
+
+                end
+
+              elsif value == nil and comparator != 'is_null' and comparator != 'not_null'
+
+                if comparator == 'is'
+                  filter_array << self_string_table + '.' + field + ' IS NULL'
+                elsif comparator == 'not'
+                  filter_array << self_string_table + '.' + field + ' IS NOT NULL'
+                end
+
+              elsif value.is_a? Range and comparator == 'is'
+
+                filter_array << self_string_table + '.' + field + ' >= ' + ActiveRecord::Base.connection.quote(value.first.to_s)
+                filter_array << self_string_table + '.' + field + ' <= ' + ActiveRecord::Base.connection.quote(value.last.to_s)
+
+              else
+
+                filter_array << self_string_table + '.' + field + api_comparison(comparator, value)
 
               end
 
@@ -720,7 +760,8 @@ class FastAPI
 
       @model.fastapi_fields.each do |field|
 
-        if @model.reflect_on_all_associations(:belongs_to).map(&:name).include? field
+        if (@model.reflect_on_all_associations(:belongs_to).map(&:name).include? field or
+          @model.reflect_on_all_associations(:has_one).map(&:name).include? field)
 
           class_name = @model.reflect_on_association(field).options[:class_name]
 
@@ -729,16 +770,20 @@ class FastAPI
           else
             model = class_name.constantize
           end
-            
+
           model_lookup[field] = model
           belongs << {model: model, alias: field}
 
         elsif @model.reflect_on_all_associations(:has_many).map(&:name).include? field
+
           model = field.to_s.singularize.classify.constantize
           model_lookup[field] = model
           has_many << model
+
         elsif @model.column_names.include? field.to_s
+
           fields << field
+
         end
 
       end
