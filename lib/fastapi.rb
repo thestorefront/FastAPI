@@ -28,12 +28,24 @@ class FastAPI
     @data = nil
     @metadata = nil
     @result_type = 0
+    @whitelist_fields = []
   end
 
   def inspect
     "<#{self.class}: #{@model}>"
   end
 
+  # Create and execute an optimized SQL query based on specified filters
+  #
+  # @param fields [Array] an array containing fields to whitelist for the SQL query. Can also pass in fields as arguments.
+  # @return [FastAPI] the current instance
+  def whitelist(fields = [])
+
+    @whitelist_fields.concat fields
+
+    self
+
+  end
 
   # Create and execute an optimized SQL query based on specified filters
   #
@@ -516,7 +528,7 @@ class FastAPI
           filters.each do |key, value|
             found_index = key.to_s.rindex('__')
             key_root = found_index.nil? ? key : key.to_s[0...found_index].to_sym
-            if not [:__order, :__offset, :__count].include? key and not self_obj.fastapi_fields_whitelist.include? key_root
+            if not [:__order, :__offset, :__count].include? key and not self_obj.fastapi_filters_whitelist.include? key_root
               raise 'Filter "' + key.to_s + '" not supported'
             end
           end
@@ -758,7 +770,11 @@ class FastAPI
 
       model_lookup = {}
 
-      @model.fastapi_fields.each do |field|
+      filter_fields = []
+      filter_fields.concat @model.fastapi_fields
+      filter_fields.concat @whitelist_fields
+
+      filter_fields.each do |field|
 
         if (@model.reflect_on_all_associations(:belongs_to).map(&:name).include? field or
           @model.reflect_on_all_associations(:has_one).map(&:name).include? field)

@@ -23,11 +23,12 @@ module FastAPIExtension
     end
 
     # Set safe fields for FastAPIInstance.safe_filter
+    # These are the fields that can be actively filtered by
     #
     # @param fields [Array] a list of fields in the form of symbols
     # @return [Array] the same array of fields
     def fastapi_safe_fields(fields)
-      @fastapi_fields_whitelist = fields
+      @fastapi_filters_whitelist = fields
     end
 
     # Used to set any default filters for the top level fastapi response
@@ -58,8 +59,8 @@ module FastAPIExtension
       @fastapi_fields_sub or [:id]
     end
 
-    def fastapi_fields_whitelist
-      @fastapi_fields_whitelist or @fastapi_fields or [:id]
+    def fastapi_filters_whitelist
+      @fastapi_filters_whitelist or @fastapi_fields or [:id]
     end
 
     def fastapi_filters
