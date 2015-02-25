@@ -415,7 +415,7 @@ class FastAPI
 
           end
 
-          values.push str[i...nexIndex]
+          values.push str[i...nextIndex]
 
           i = nextIndex + 1
 
