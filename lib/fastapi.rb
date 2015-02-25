@@ -312,11 +312,19 @@ class FastAPI
               currow[obj_name] = {}
             end
 
-            currow[obj_name][field.to_sym] = api_convert_type(val, model.columns_hash[field].type)
+            currow[obj_name][field.to_sym] = api_convert_type(
+              val,
+              model.columns_hash[field].type,
+              (model.columns_hash[field].respond_to?('array') and model.columns_hash[field].array)
+            )
 
           elsif @model.columns_hash[field]
 
-            currow[field.to_sym] = api_convert_type(val, @model.columns_hash[field].type)
+            currow[field.to_sym] = api_convert_type(
+              val,
+              @model.columns_hash[field].type,
+              (@model.columns_hash[field].respond_to?('array') and @model.columns_hash[field].array)
+            )
 
           end
 
@@ -337,6 +345,85 @@ class FastAPI
         offset: offset,
         error: nil
       }
+
+    end
+
+    # the two following methods are very similar, can reuse
+
+    def parse_postgres_array(str)
+
+      i = 0
+      len = str.length
+
+      values = []
+
+      i = str.index('{')
+
+      return values unless i
+
+      i = i + 1
+
+      while i < len
+
+        c = str[i]
+
+        if c == '}'
+
+          break
+
+        elsif c == '"'
+
+          i += 1
+          nextIndex = str.index('"', i)
+
+          while str[nextIndex - 1] == '\\'
+
+            j = 1
+            while str[nextIndex - j] == '\\'
+              j += 1
+            end
+
+            if j & 1 == 1
+              break
+            end
+
+            nextIndex = str.index('"', nextIndex + 1)
+
+          end
+
+          values.push str[i...nextIndex]
+
+          i = nextIndex + 1
+
+        else
+
+          if c == ','
+
+            values.push nil
+            i += 1
+            next
+
+          end
+
+          parensIndex = str.index('}', i)
+          nextIndex = str.index(',', i)
+
+          if nextIndex.nil? or nextIndex > parensIndex
+
+            values.push str[i...parensIndex]
+            break
+
+          end
+
+          values.push str[i...nexIndex]
+
+          i = nextIndex + 1
+
+        end
+
+      end
+
+      return values
 
     end
 
@@ -432,31 +519,37 @@ class FastAPI
     end
 
 
-    def api_comparison(comparator, value)
+    def api_comparison(comparator, value, field, type, is_array)
+
+      unless is_array
+        field_string = field
+      else
+        field_string = 'ANY(' + field + ')'
+      end
 
       if comparator == 'is'
 
-        ' = ' + ActiveRecord::Base.connection.quote(value.to_s)
+        ActiveRecord::Base.connection.quote(value.to_s) + ' = ' + field_string
 
       elsif comparator == 'not'
 
-        ' <> ' + ActiveRecord::Base.connection.quote(value.to_s)
+        ActiveRecord::Base.connection.quote(value.to_s) + ' <> ' + field_string
 
       elsif comparator == 'gt'
 
-        ' > ' + ActiveRecord::Base.connection.quote(value.to_s)
+        ActiveRecord::Base.connection.quote(value.to_s) + ' < ' + field_string
 
       elsif comparator == 'gte'
 
-        ' >= ' + ActiveRecord::Base.connection.quote(value.to_s)
+        ActiveRecord::Base.connection.quote(value.to_s) + ' <= ' + field_string
 
       elsif comparator == 'lt'
 
-        ' < ' + ActiveRecord::Base.connection.quote(value.to_s)
+        ActiveRecord::Base.connection.quote(value.to_s) + ' > ' + field_string
 
       elsif comparator == 'lte'
 
-        ' <= ' + ActiveRecord::Base.connection.quote(value.to_s)
+        ActiveRecord::Base.connection.quote(value.to_s) + ' >= ' + field_string
 
       elsif comparator == 'in' or comparator == 'not_in'
 
@@ -470,33 +563,61 @@ class FastAPI
 
         end
 
-        if comparator == 'in'
-          ' IN(' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ')'
+        if is_array
+
+          type_convert = {
+            boolean: '::boolean',
+            integer: '::integer',
+            float: '::float'
+          }[type]
+
+          type_convert = '::text' if type.nil?
+
+          if comparator == 'in'
+            'ARRAY[' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ']' + type_convert + '[] && ' + field
+          else
+            'NOT ARRAY[' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ']' + type_convert + '[] && ' + field
+          end
+
         else
-          ' NOT IN(' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ')'
+
+          if comparator == 'in'
+            field + ' IN(' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ')'
+          else
+            field + ' NOT IN(' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ')'
+          end
+
         end
 
       elsif comparator == 'contains'
 
-        ' LIKE \'%\' || ' + ActiveRecord::Base.connection.quote(value.to_s) + ' || \'%\''
+        '\'%\' || ' + ActiveRecord::Base.connection.quote(value.to_s) + ' || \'%\' LIKE ' + field_string
 
       elsif comparator == 'icontains'
 
-        ' ILIKE \'%\' || ' + ActiveRecord::Base.connection.quote(value.to_s) + ' || \'%\''
+        '\'%\' || ' + ActiveRecord::Base.connection.quote(value.to_s) + ' || \'%\' ILIKE ' + field_string
 
       elsif comparator == 'is_null'
 
-        ' IS NULL'
+        'NULL = ' + field_string
 
       elsif comparator == 'not_null'
 
-        ' IS NOT NULL'
+        'NOT NULL = ' + field_string
 
       end
 
     end
 
-    def api_convert_type(val, type)
+    def api_convert_type(val, type, is_array = false)
+
+      return api_convert_value(val, type) unless is_array
+
+      return parse_postgres_array(val).map { |inner_value| api_convert_value(inner_value, type) }
+
+    end
+
+    def api_convert_value(val, type)
 
       if not val.nil?
         if type == :integer
@@ -691,6 +812,17 @@ class FastAPI
 
             elsif self_obj.column_names.include? field
 
+              base_field = self_string_table + '.' + field
+              field_string = base_field
+              is_array = false
+
+              if self_obj.columns_hash[field].respond_to?('array') and self_obj.columns_hash[field].array == true
+
+                field_string = 'ANY(' + field_string + ')'
+                is_array = true
+
+              end
+
               if self_obj.columns_hash[field].type == :boolean
 
                 if !!value != value
@@ -715,9 +847,9 @@ class FastAPI
                 if !!value == value
 
                   if comparator == 'is'
-                    filter_array << self_string_table + '.' + field + ' IS ' + value.to_s.upcase
+                    filter_array << value.to_s.upcase + ' = ' + field_string
                   elsif comparator == 'not'
-                    filter_array << self_string_table + '.' + field + ' IS NOT ' + value.to_s.upcase
+                    filter_array << 'NOT ' + value.to_s.upcase + ' = ' + field_string
                   end
 
                 end
@@ -725,19 +857,19 @@ class FastAPI
               elsif value == nil and comparator != 'is_null' and comparator != 'not_null'
 
                 if comparator == 'is'
-                  filter_array << self_string_table + '.' + field + ' IS NULL'
+                  filter_array << 'NULL = ' + field_string
                 elsif comparator == 'not'
-                  filter_array << self_string_table + '.' + field + ' IS NOT NULL'
+                  filter_array << 'NOT NULL = ' + field_string
                 end
 
               elsif value.is_a? Range and comparator == 'is'
 
-                filter_array << self_string_table + '.' + field + ' >= ' + ActiveRecord::Base.connection.quote(value.first.to_s)
-                filter_array << self_string_table + '.' + field + ' <= ' + ActiveRecord::Base.connection.quote(value.last.to_s)
+                filter_array << ActiveRecord::Base.connection.quote(value.first.to_s) + ' <= ' + field_string
+                filter_array << ActiveRecord::Base.connection.quote(value.last.to_s) + ' >= ' + field_string
 
               else
 
-                filter_array << self_string_table + '.' + field + api_comparison(comparator, value)
+                filter_array << api_comparison(comparator, value, base_field, self_obj.columns_hash[field].type, is_array)
 
               end
 
