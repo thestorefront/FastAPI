@@ -477,14 +477,12 @@ class FastAPI
 
           cur_row[fields[entry_index]] = api_convert_type(str[i...nextIndex], types[entry_index])
 
-          puts fields[entry_index].to_s + ' (c = "): ' + cur_row[fields[entry_index]].to_s
-
           entry_index = entry_index + 1
 
           i = nextIndex + 1
 
         elsif c == ','
-          
+
           i = i + 1
 
         else
@@ -501,8 +499,6 @@ class FastAPI
           else
             cur_row[fields[entry_index]] = api_convert_type(str[i...nextIndex], types[entry_index])
           end
-
-          puts fields[entry_index].to_s + ' (c = else): ' + cur_row[fields[entry_index]].to_s
 
           entry_index = entry_index + 1
 
