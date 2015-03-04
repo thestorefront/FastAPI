@@ -476,15 +476,18 @@ class FastAPI
           end
 
           cur_row[fields[entry_index]] = api_convert_type(str[i...nextIndex], types[entry_index])
+
+          puts fields[entry_index].to_s + ' (c = "): ' + cur_row[fields[entry_index]].to_s
+
           entry_index = entry_index + 1
 
           i = nextIndex + 1
 
-        else
+        elsif c == ','
+          
+          i = i + 1
 
-          if c == ','
-            i = i + 1
-          end
+        else
 
           parensIndex = str.index(')', i)
           nextIndex = str.index(',', i)
@@ -498,6 +501,8 @@ class FastAPI
           else
             cur_row[fields[entry_index]] = api_convert_type(str[i...nextIndex], types[entry_index])
           end
+
+          puts fields[entry_index].to_s + ' (c = else): ' + cur_row[fields[entry_index]].to_s
 
           entry_index = entry_index + 1
 
