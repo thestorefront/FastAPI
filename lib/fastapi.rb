@@ -592,11 +592,11 @@ class FastAPI
 
       elsif comparator == 'contains'
 
-        '\'%\' || ' + ActiveRecord::Base.connection.quote(value.to_s) + ' || \'%\' LIKE ' + field_string
+        field_string + ' LIKE \'%\' || ' + ActiveRecord::Base.connection.quote(value.to_s) + ' || \'%\''
 
       elsif comparator == 'icontains'
 
-        '\'%\' || ' + ActiveRecord::Base.connection.quote(value.to_s) + ' || \'%\' ILIKE ' + field_string
+        field_string + ' ILIKE \'%\' || ' + ActiveRecord::Base.connection.quote(value.to_s) + ' || \'%\''
 
       elsif comparator == 'is_null'
 
