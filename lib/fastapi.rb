@@ -1024,10 +1024,15 @@ class FastAPI
         has_many_filters = ''
         has_many_order = ''
         if filters[:has_many].has_key? model_symbol
-          has_many_filters = 'AND ' + filters[:has_many][model_symbol].join(' AND ')
+
+          if filters[:has_many][model_symbol].count > 0
+            has_many_filters = 'AND ' + filters[:has_many][model_symbol].join(' AND ')
+          end
+
           if not filters[:has_many_order][model_symbol].nil?
             has_many_order = 'ORDER BY ' + filters[:has_many_order][model_symbol]
           end
+          
         end
 
         field_list << [
