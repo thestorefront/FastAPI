@@ -352,6 +352,10 @@ class FastAPI
 
     def parse_postgres_array(str)
 
+      unless str.is_a? String
+        return []
+      end
+
       i = 0
       len = str.length
 
@@ -428,6 +432,10 @@ class FastAPI
     end
 
     def parse_many(str, fields = [], types = [])
+
+      unless str.is_a? String
+        return []
+      end
 
       rows = []
       cur_row = {}
