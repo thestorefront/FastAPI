@@ -57,4 +57,26 @@ describe Bucket do
                          attributes: %w(id color material) } }
     end
   end
+
+  describe 'when locating an incomplete bucket associated with a person' do
+    let!(:person)           { create(:person_with_incomplete_bucket) }
+    let(:response)          { ModelHelper.get_response(Person) }
+    let(:incomplete_bucket) { response['data'].first['buckets'].first }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { data: incomplete_bucket, attributes: %w(id color material) } }
+    end
+
+    it 'has a nil color' do
+      expect(incomplete_bucket['color']).to be_nil
+    end
+
+    it 'has the correct material' do
+      expect(incomplete_bucket['material']).to eq 'plastic'
+    end
+  end
 end
