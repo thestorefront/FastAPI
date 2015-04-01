@@ -12,6 +12,7 @@ Gem::Specification.new do |s|
   s.license       = 'MIT'
 
   s.add_runtime_dependency 'activerecord', '>= 3.2.0'
+  s.add_runtime_dependency 'activesupport', '>= 3.2.0'
   s.add_runtime_dependency 'oj', '~> 2.9.9'
   s.add_runtime_dependency 'pg', '>= 0.18.1'
 
