@@ -28,16 +28,16 @@ describe Person do
   end
 
   describe 'when locating a person associated with a bucket' do
-    let!(:person)  { create(:person_with_buckets) }
-    let(:response) { ModelHelper.get_response(Bucket) }
+    let!(:person)            { create(:person_with_buckets) }
+    let(:response)           { ModelHelper.get_response(Bucket) }
+    let(:person_from_bucket) { response['data'].first['person'] }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 5, count: 5, offset: 0, error: false } }
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { data: response['data'].first['person'],
-                         attributes: %w(id name gender age) } }
+      let(:expected) { { data: person_from_bucket, attributes: %w(id name gender age) } }
     end
   end
 end
