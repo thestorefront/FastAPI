@@ -1,4 +1,4 @@
-# FastAPI
+# FastAPI [![Build Status](https://travis-ci.org/thestorefront/FastAPI.svg?branch=master)](https://travis-ci.org/thestorefront/FastAPI)
 
 Easily create robust, standardized API endpoints using lightning-fast database queries
 
