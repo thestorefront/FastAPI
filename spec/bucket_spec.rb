@@ -33,10 +33,8 @@ describe Bucket do
     let!(:buckets_15) { create_list(:bucket_with_marbles, 5, marble_radius: 15) }
     let(:response)    { ModelHelper.get_response(subject.class) }
 
-    skip 'default filters need work' do
-      it_behaves_like 'fastapi_meta' do
-        let(:expected) { { total: 5, count: 5, offset: 0, error: false } }
-      end
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 5, count: 5, offset: 0, error: false } }
     end
 
     it_behaves_like 'fastapi_data' do
