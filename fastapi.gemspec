@@ -16,7 +16,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'pg', '>= 0.18.1'
 
   s.add_development_dependency 'rake', '~> 10.0'
-  s.add_development_dependency 'bundler', '~> 1.9'
+  s.add_development_dependency 'bundler', '>= 1.3'
 
   s.add_development_dependency 'rspec', '~> 3.2.0'
   s.add_development_dependency 'factory_girl', '~> 4.0'
