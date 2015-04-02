@@ -492,6 +492,8 @@ class FastAPI
         elsif c == ','
 
           i = i + 1
+          cur_row[fields[entry_index]] = nil
+          entry_index = entry_index + 1
 
         else
 
@@ -1032,7 +1034,7 @@ class FastAPI
           if not filters[:has_many_order][model_symbol].nil?
             has_many_order = 'ORDER BY ' + filters[:has_many_order][model_symbol]
           end
-          
+
         end
 
         field_list << [
