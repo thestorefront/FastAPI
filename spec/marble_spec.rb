@@ -41,6 +41,24 @@ describe Marble do
     end
   end
 
+  describe 'when locating a marble by id' do
+    let!(:marble)        { create(:marble) }
+    let(:response)       { ModelHelper.fetch(Marble, marble.id) }
+    let(:fetched_bucket) { response['data'].first }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id color radius bucket) } }
+    end
+
+    it 'has the correct id' do
+      expect(fetched_bucket['id']).to eq marble.id
+    end
+  end
+
   describe 'when locating a marble associated with a bucket' do
     let!(:bucket)  { create(:bucket_with_marbles) }
     let(:response) { ModelHelper.response(Bucket) }
