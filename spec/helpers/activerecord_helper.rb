@@ -2,7 +2,9 @@
 ENV['RAILS_ENV'] = 'test'
 
 # load the database configuration
-root = Pathname.new(__dir__).join('..')
+
+path = File.expand_path(File.dirname(__FILE__))
+root = Pathname.new(path).join('..')
 $db  = YAML.load_file(root.join('db', 'database.yml'))['test']
 
 # create the database and connect
