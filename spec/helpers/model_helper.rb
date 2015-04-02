@@ -8,4 +8,9 @@ module ModelHelper
     results = clazz.fastapi.whitelist([*whitelist]).filter(filter)
     JSON.parse(results.response)
   end
+
+  def self.fetch(clazz, id)
+    results = clazz.fastapi.fetch(id)
+    JSON.parse(results.response)
+  end
 end

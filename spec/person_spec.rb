@@ -40,6 +40,24 @@ describe Person do
     end
   end
 
+  describe 'when locating a person by id' do
+    let!(:person)        { create(:person) }
+    let(:response)       { ModelHelper.fetch(Person, person.id) }
+    let(:fetched_person) { response['data'].first }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id name gender age buckets) } }
+    end
+
+    it 'has the correct id' do
+      expect(fetched_person['id']).to eq person.id
+    end
+  end
+
   describe 'when locating a person associated with a bucket' do
     let!(:person)            { create(:person_with_buckets) }
     let(:response)           { ModelHelper.response(Bucket) }

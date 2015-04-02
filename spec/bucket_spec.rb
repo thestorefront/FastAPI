@@ -55,6 +55,24 @@ describe Bucket do
     end
   end
 
+  describe 'when locating a bucket by id' do
+    let!(:bucket)        { create(:bucket) }
+    let(:response)       { ModelHelper.fetch(Bucket, bucket.id) }
+    let(:fetched_bucket) { response['data'].first }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id color material person marbles) } }
+    end
+
+    it 'has the correct id' do
+      expect(fetched_bucket['id']).to eq bucket.id
+    end
+  end
+
   describe 'when locating a bucket associated with a person' do
     let!(:person)  { create(:person_with_buckets) }
     let(:response) { ModelHelper.response(Person) }
