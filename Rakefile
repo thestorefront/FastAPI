@@ -24,6 +24,7 @@ namespace :spec do
   end
 
   def rake_root
-    Pathname.new(__dir__)
+    path = File.expand_path(File.dirname(__FILE__))
+    Pathname.new(path)
   end
 end
