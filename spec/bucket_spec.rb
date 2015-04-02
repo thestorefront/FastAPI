@@ -47,11 +47,16 @@ describe Bucket do
     let(:response)    { ModelHelper.response(Bucket) }
 
     it_behaves_like 'fastapi_meta' do
-      let(:expected) { { total: 5, count: 5, offset: 0, error: false } }
+      let(:expected) { { total: 10, count: 10, offset: 0, error: false } }
     end
 
     it_behaves_like 'fastapi_data' do
       let(:expected) { { attributes: %w(id color material person marbles) } }
+    end
+
+    it 'returns only marbles that match the default filter' do
+      max_radius = response['data'].map { |b| b['marbles'].map { |m| m['radius' ] } }.flatten.max
+      expect(max_radius <= 10).to be_truthy
     end
   end
 
