@@ -41,6 +41,20 @@ describe Marble do
     end
   end
 
+  describe 'when filtering through marbles using a default filter' do
+    let!(:orange_marble) { create(:marble, color: 'orange') }
+    let!(:clear_marble)  { create(:marble, color: 'clear') }
+    let(:response)       { ModelHelper.response(Marble) }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id color radius bucket) } }
+    end
+  end
+
   describe 'when locating a marble by id' do
     let!(:marble)        { create(:marble) }
     let(:response)       { ModelHelper.fetch(Marble, marble.id) }
