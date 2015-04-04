@@ -3,25 +3,22 @@ require 'fastapi/active_record_extension.rb'
 
 class FastAPI
 
-  @@result_types = {
-    single: 0,
-    multiple: 1,
-  }
+  @@result_types = { single: 0, multiple: 1 }
 
-  @@api_comparator_list = [
-    'is',
-    'not',
-    'gt',
-    'gte',
-    'lt',
-    'lte',
-    'in',
-    'not_in',
-    'contains',
-    'icontains',
-    'is_null',
-    'not_null',
-  ]
+  @@api_comparator_list = %w(
+    is
+    not
+    gt
+    gte
+    lt
+    lte
+    in
+    not_in
+    contains
+    icontains
+    is_null
+    not_null
+  )
 
   def initialize(model)
     @model = model
@@ -40,11 +37,9 @@ class FastAPI
   # @param fields [Array] an array containing fields to whitelist for the SQL query. Can also pass in fields as arguments.
   # @return [FastAPI] the current instance
   def whitelist(fields = [])
-
     @whitelist_fields.concat fields
 
     self
-
   end
 
   # Create and execute an optimized SQL query based on specified filters
@@ -53,27 +48,13 @@ class FastAPI
   # @param meta [Hash] a hash containing custom metadata
   # @return [FastAPI] the current instance
   def filter(filters = {}, meta = {}, safe = false)
-
     result = fastapi_query(filters, safe)
 
-    metadata = {}
-
-    meta.each do |key, value|
-      metadata[key] = value
-    end
-
-    metadata[:total] = result[:total]
-    metadata[:offset] = result[:offset]
-    metadata[:count] = result[:count]
-    metadata[:error] = result[:error]
-
-    @metadata = metadata
-    @data = result[:data]
-
+    @metadata    = meta.merge(result.slice(:total, :offset, :count, :error))
+    @data        = result[:data]
     @result_type = @@result_types[:multiple]
 
     self
-
   end
 
   # Create and execute an optimized SQL query based on specified filters.
@@ -83,11 +64,7 @@ class FastAPI
   # @param meta [Hash] a hash containing custom metadata
   # @return [FastAPI] the current instance
   def safe_filter(filters = {}, meta = {})
-
     filter(filters, meta, true)
-
-    self
-
   end
 
   # Create and execute an optimized SQL query based on specified object id.
@@ -97,15 +74,13 @@ class FastAPI
   # @param meta [Hash] a hash containing custom metadata
   # @return [FastAPI] the current instance
   def fetch(id, meta = {})
+    filter({ id: id }, meta)
 
-    filter({id: id}, meta)
-
-    if @metadata[:total] == 0
-      @metadata[:error] = {message: @model.to_s + ' id does not exist'}
+    if @metadata[:total].zero?
+      @metadata[:error] = { message: "#{@model} id does not exist" }
     end
 
     self
-
   end
 
   # Returns the data from the most recently executed `filter` or `fetch` call.
@@ -140,10 +115,7 @@ class FastAPI
   #
   # @return [Hash] available data and metadata
   def to_hash
-    {
-      meta: @metadata,
-      data: @data
-    }
+    { meta: @metadata, data: @data }
   end
 
   # Intended to return the final API response
@@ -157,24 +129,11 @@ class FastAPI
   #
   # @return [String] JSON data and metadata
   def spoof(data = [], meta = {})
+    meta[:total]  ||= data.count
+    meta[:count]  ||= data.count
+    meta[:offset] ||= 0
 
-    if not meta.has_key? :total
-      meta[:total] = data.count
-    end
-
-    if not meta.has_key? :offset
-      meta[:offset] = 0
-    end
-
-    if not meta.has_key? :count
-      meta[:count] = data.count
-    end
-
-    Oj.dump({
-      meta: meta,
-      data: data
-    }, mode: :compat)
-
+    Oj.dump({ meta: meta, data: data }, mode: :compat)
   end
 
   # Returns a JSONified string representing a rejected API response with invalid fields parameters
