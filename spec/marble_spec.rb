@@ -73,6 +73,18 @@ describe Marble do
     end
   end
 
+  describe 'when locating a marble that does not exist by id' do
+    let(:response) { ModelHelper.fetch(Marble, 100) }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 0, count: 0, offset: 0, error: /[\w]+ id does not exist/ } }
+    end
+
+    it 'has an empty data array' do
+      expect(response['data']).to eq []
+    end
+  end
+
   describe 'when locating a marble associated with a bucket' do
     let!(:bucket)  { create(:bucket_with_marbles) }
     let(:response) { ModelHelper.response(Bucket) }

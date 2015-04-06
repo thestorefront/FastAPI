@@ -78,6 +78,18 @@ describe Bucket do
     end
   end
 
+  describe 'when locating a bucket that does not exist by id' do
+    let(:response) { ModelHelper.fetch(Bucket, 100) }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 0, count: 0, offset: 0, error: /[\w]+ id does not exist/ } }
+    end
+
+    it 'has an empty data array' do
+      expect(response['data']).to eq []
+    end
+  end
+
   describe 'when locating a bucket associated with a person' do
     let!(:person)  { create(:person_with_buckets) }
     let(:response) { ModelHelper.response(Person) }
@@ -111,6 +123,32 @@ describe Bucket do
 
     it 'has the correct material' do
       expect(incomplete_bucket['material']).to eq 'plastic'
+    end
+  end
+
+  describe 'when spoofing a bucket with no meta' do
+    let(:bucket)   { Bucket.fastapi.spoof([{id: 1, color: 'blue' }]) }
+    let(:response) { JSON.parse(bucket) }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id color) } }
+    end
+  end
+
+  describe 'when spoofing a bucket with custom meta' do
+    let(:bucket)   { Bucket.fastapi.spoof([{id: 1, color: 'blue' }], { count: 10, total: 10 }) }
+    let(:response) { JSON.parse(bucket) }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 10, count: 10, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id color) } }
     end
   end
 end

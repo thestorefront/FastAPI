@@ -18,9 +18,9 @@ shared_examples 'fastapi_meta' do
       expect(meta['offset']).to eq expected[:offset]
     end
 
-    it 'should not have an error' do
+    it 'should have the correct error (or no error)' do
       if expected[:error]
-        expect(meta['error']).to be_truthy
+        expect(meta['error']['message']).to match(expected[:error])
       else
         expect(meta['error']).to be_nil
       end
