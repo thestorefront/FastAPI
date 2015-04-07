@@ -14,6 +14,32 @@ describe Bucket do
     end
   end
 
+  describe 'when locating a specific bucket using safe filters' do
+    let!(:bucket)  { create(:blue_paper_bucket) }
+    let(:response) { ModelHelper.response(Bucket, { color: 'blue', material: 'paper' }, { safe: true }) }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id color material person marbles) } }
+    end
+  end
+
+  describe 'when locating a specific bucket using safe filters that are not allowed' do
+    let!(:bucket)  { create(:blue_paper_bucket) }
+    let(:response) { ModelHelper.response(Bucket, { id: 1 }, { safe: true }) }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 0, count: 0, offset: 0, error: /Filter "id" not supported/ } }
+    end
+
+    it 'has an empty data array' do
+      expect(response['data']).to eq []
+    end
+  end
+
   describe 'when filtering through many buckets' do
     let!(:red_buckets)  { create_list(:red_plastic_bucket, 15) }
     let!(:blue_buckets) { create_list(:blue_paper_bucket, 15) }
@@ -29,8 +55,8 @@ describe Bucket do
   end
 
   describe 'when whitelisting bucket attributes' do
-    let!(:bucket) { create(:bucket) }
-    let(:response) { ModelHelper.whitelisted_response(Bucket, 'created_at') }
+    let!(:bucket)  { create(:bucket) }
+    let(:response) { ModelHelper.response(Bucket, {}, whitelist: 'created_at') }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }

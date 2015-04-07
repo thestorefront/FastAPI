@@ -30,7 +30,7 @@ describe Marble do
 
   describe 'when whitelisting marble attributes' do
     let!(:marble) { create(:marble) }
-    let(:response) { ModelHelper.whitelisted_response(Marble, 'created_at') }
+    let(:response) { ModelHelper.response(Marble, {}, whitelist: 'created_at') }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }

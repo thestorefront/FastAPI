@@ -29,7 +29,7 @@ describe Person do
 
   describe 'when whitelisting person attributes' do
     let!(:person) { create(:person) }
-    let(:response) { ModelHelper.whitelisted_response(Person, 'created_at') }
+    let(:response) { ModelHelper.response(Person, {}, whitelist: 'created_at') }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
