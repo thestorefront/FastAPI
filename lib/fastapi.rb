@@ -175,724 +175,724 @@ class FastAPI
 
   private
 
-    def clamp(value, min, max)
-      [min, value, max].sort[1]
+  def clamp(value, min, max)
+    [min, value, max].sort[1]
+  end
+
+  def error(offset, message)
+    { data: [], total: 0, count: 0, offset: offset, error: { message: message } }
+  end
+
+  def fastapi_query(filters = {}, safe = false)
+
+    unless ActiveRecord::ConnectionAdapters.constants.include?(:PostgreSQLAdapter) &&
+        ActiveRecord::Base.connection.instance_of?(ActiveRecord::ConnectionAdapters::PostgreSQLAdapter)
+      fail 'FastAPI only supports PostgreSQL at this time.'
     end
 
-    def error(offset, message)
-      { data: [], total: 0, count: 0, offset: offset, error: { message: message } }
+    offset = filters.delete(:__offset).try(:to_i) || 0
+    cnt    = filters.delete(:__count).try(:to_i) || 500
+    count  = clamp(cnt, 1, 500)
+
+    begin
+      prepared_data = api_generate_sql(filters, offset, count, safe)
+    rescue StandardError => exception
+      return error(offset, exception.message)
     end
 
-    def fastapi_query(filters = {}, safe = false)
+    model_lookup = prepared_data[:models].each_with_object({}) do |(key, model), lookup|
+      columns = model.columns_hash
+      lookup[key] = {
+        model: model,
+        fields: model.fastapi_fields_sub,
+        types: model.fastapi_fields_sub.map { |field| columns[field.to_s].try(:type) }
+      }
+    end
 
-      unless ActiveRecord::ConnectionAdapters.constants.include?(:PostgreSQLAdapter) &&
-          ActiveRecord::Base.connection.instance_of?(ActiveRecord::ConnectionAdapters::PostgreSQLAdapter)
-        fail 'FastAPI only supports PostgreSQL at this time.'
-      end
+    begin
+      count_result = ActiveRecord::Base.connection.execute(prepared_data[:count_query])
+      result = ActiveRecord::Base.connection.execute(prepared_data[:query])
+    rescue
+      error(offset, 'Query failed')
+    end
 
-      offset = filters.delete(:__offset).try(:to_i) || 0
-      cnt    = filters.delete(:__count).try(:to_i) || 500
-      count  = clamp(cnt, 1, 500)
+    total_size = count_result.values.size > 0 ? count_result.values[0][0].to_i : 0
 
-      begin
-        prepared_data = api_generate_sql(filters, offset, count, safe)
-      rescue StandardError => exception
-        return error(offset, exception.message)
-      end
+    fields = result.fields
+    rows   = result.values
 
-      model_lookup = prepared_data[:models].each_with_object({}) do |(key, model), lookup|
-        columns = model.columns_hash
-        lookup[key] = {
-          model: model,
-          fields: model.fastapi_fields_sub,
-          types: model.fastapi_fields_sub.map { |field| columns[field.to_s].try(:type) }
-        }
-      end
+    dataset = rows.each_with_object(Array.new) do |row, data|
+      datum = row.each_with_object({}).with_index do |(val, current), index|
 
-      begin
-        count_result = ActiveRecord::Base.connection.execute(prepared_data[:count_query])
-        result = ActiveRecord::Base.connection.execute(prepared_data[:query])
-      rescue
-        error(offset, 'Query failed')
-      end
+        field = fields[index]
+        split_index = field.rindex('__')
 
-      total_size = count_result.values.size > 0 ? count_result.values[0][0].to_i : 0
+        if field[0..7] == '__many__'
 
-      fields = result.fields
-      rows   = result.values
+          field     = field[8..-1]
+          field_sym = field.to_sym
+          model     = model_lookup[field_sym]
 
-      dataset = rows.each_with_object(Array.new) do |row, data|
-        datum = row.each_with_object({}).with_index do |(val, current), index|
+          current[field_sym] = parse_many(val, model[:fields], model[:types])
 
-          field = fields[index]
-          split_index = field.rindex('__')
+        elsif split_index
 
-          if field[0..7] == '__many__'
+          obj_name = field[0..split_index - 1].to_sym
+          field    = field[split_index + 2..-1]
+          model    = model_lookup[obj_name][:model]
 
-            field     = field[8..-1]
-            field_sym = field.to_sym
-            model     = model_lookup[field_sym]
+          current[obj_name] ||= {}
 
-            current[field_sym] = parse_many(val, model[:fields], model[:types])
+          current[obj_name][field.to_sym] = api_convert_type(val,
+            model.columns_hash[field].type,
+            (model.columns_hash[field].respond_to?('array') && model.columns_hash[field].array))
 
-          elsif split_index
+        elsif @model.columns_hash[field]
 
-            obj_name = field[0..split_index - 1].to_sym
-            field    = field[split_index + 2..-1]
-            model    = model_lookup[obj_name][:model]
-
-            current[obj_name] ||= {}
-
-            current[obj_name][field.to_sym] = api_convert_type(val,
-              model.columns_hash[field].type,
-              (model.columns_hash[field].respond_to?('array') && model.columns_hash[field].array))
-
-          elsif @model.columns_hash[field]
-
-            current[field.to_sym] = api_convert_type(val,
-              @model.columns_hash[field].type,
-              (@model.columns_hash[field].respond_to?('array') && @model.columns_hash[field].array))
-          end
+          current[field.to_sym] = api_convert_type(val,
+            @model.columns_hash[field].type,
+            (@model.columns_hash[field].respond_to?('array') && @model.columns_hash[field].array))
         end
-        data << datum
       end
-      { data: dataset, total: total_size, count: dataset.size, offset: offset, error: nil }
+      data << datum
+    end
+    { data: dataset, total: total_size, count: dataset.size, offset: offset, error: nil }
+  end
+
+  # the two following methods are very similar, can reuse
+
+  def parse_postgres_array(str)
+
+    unless i = str.is_a?(String) && str.index('{')
+      return []
     end
 
-    # the two following methods are very similar, can reuse
+    i += 1
 
-    def parse_postgres_array(str)
+    while i < str.length
 
-      unless i = str.is_a?(String) && str.index('{')
-        return []
-      end
+      c = str[i]
 
-      i += 1
+      if c == '}'
 
-      while i < str.length
+        break
 
-        c = str[i]
+      elsif c == '"'
 
-        if c == '}'
+        i += 1
+        nextIndex = str.index('"', i)
 
-          break
+        while str[nextIndex - 1] == '\\'
 
-        elsif c == '"'
-
-          i += 1
-          nextIndex = str.index('"', i)
-
-          while str[nextIndex - 1] == '\\'
-
-            j = 1
-            while str[nextIndex - j] == '\\'
-              j += 1
-            end
-
-            if j & 1 == 1
-              break
-            end
-
-            nextIndex = str.index('"', nextIndex + 1)
+          j = 1
+          while str[nextIndex - j] == '\\'
+            j += 1
           end
 
-          values.push str[i...nextIndex]
-
-          i = nextIndex + 1
-
-        else
-
-          if c == ','
-
-            values.push(nil)
-            i += 1
-            next
-          end
-
-          parensIndex = str.index('}', i)
-          nextIndex = str.index(',', i)
-
-          if nextIndex.nil? || nextIndex > parensIndex
-
-            values.push str[i...parensIndex]
+          if j & 1 == 1
             break
           end
 
-          values.push str[i...nextIndex]
-
-          i = nextIndex + 1
+          nextIndex = str.index('"', nextIndex + 1)
         end
+
+        values.push str[i...nextIndex]
+
+        i = nextIndex + 1
+
+      else
+
+        if c == ','
+
+          values.push(nil)
+          i += 1
+          next
+        end
+
+        parensIndex = str.index('}', i)
+        nextIndex = str.index(',', i)
+
+        if nextIndex.nil? || nextIndex > parensIndex
+
+          values.push str[i...parensIndex]
+          break
+        end
+
+        values.push str[i...nextIndex]
+
+        i = nextIndex + 1
       end
-      values
+    end
+    values
+  end
+
+  def parse_many(str, fields = [], types = [])
+
+    unless i = str.is_a?(String) && str.index('(')
+      return []
     end
 
-    def parse_many(str, fields = [], types = [])
+    rows = []
+    cur_row = {}
+    entry_index = 0
 
-      unless i = str.is_a?(String) && str.index('(')
-        return []
-      end
+    i += 1
 
-      rows = []
-      cur_row = {}
-      entry_index = 0
+    while i < str.length
 
-      i += 1
+      c = str[i]
 
-      while i < str.length
+      if c == ')'
 
-        c = str[i]
+        rows << cur_row
+        cur_row = {}
+        entry_index = 0
+        i = i + 3
 
-        if c == ')'
+      elsif c == '"'
 
+        i = i + 1
+        nextIndex = str.index('"', i)
+
+        while str[nextIndex - 1] == '\\'
+
+          j = 1
+          while str[nextIndex - j] == '\\'
+            j = j + 1
+          end
+
+          if j & 1 == 1
+            break
+          end
+
+          nextIndex = str.index('"', nextIndex + 1)
+        end
+
+        cur_row[fields[entry_index]] = api_convert_type(str[i...nextIndex], types[entry_index])
+
+        entry_index = entry_index + 1
+
+        i = nextIndex + 1
+
+      elsif c == ','
+
+        i = i + 1
+        cur_row[fields[entry_index]] = nil
+        entry_index = entry_index + 1
+
+      else
+
+        parensIndex = str.index(')', i)
+        nextIndex = str.index(',', i)
+
+        if nextIndex.nil? || nextIndex > parensIndex
+          nextIndex = parensIndex
+        end
+
+        if i == nextIndex
+          cur_row[fields[entry_index]] = nil
+        else
+          cur_row[fields[entry_index]] = api_convert_type(str[i...nextIndex], types[entry_index])
+        end
+
+        entry_index = entry_index + 1
+
+        if nextIndex == parensIndex
           rows << cur_row
           cur_row = {}
           entry_index = 0
-          i = i + 3
-
-        elsif c == '"'
-
-          i = i + 1
-          nextIndex = str.index('"', i)
-
-          while str[nextIndex - 1] == '\\'
-
-            j = 1
-            while str[nextIndex - j] == '\\'
-              j = j + 1
-            end
-
-            if j & 1 == 1
-              break
-            end
-
-            nextIndex = str.index('"', nextIndex + 1)
-          end
-
-          cur_row[fields[entry_index]] = api_convert_type(str[i...nextIndex], types[entry_index])
-
-          entry_index = entry_index + 1
-
+          i = nextIndex + 3
+        else
           i = nextIndex + 1
-
-        elsif c == ','
-
-          i = i + 1
-          cur_row[fields[entry_index]] = nil
-          entry_index = entry_index + 1
-
-        else
-
-          parensIndex = str.index(')', i)
-          nextIndex = str.index(',', i)
-
-          if nextIndex.nil? || nextIndex > parensIndex
-            nextIndex = parensIndex
-          end
-
-          if i == nextIndex
-            cur_row[fields[entry_index]] = nil
-          else
-            cur_row[fields[entry_index]] = api_convert_type(str[i...nextIndex], types[entry_index])
-          end
-
-          entry_index = entry_index + 1
-
-          if nextIndex == parensIndex
-            rows << cur_row
-            cur_row = {}
-            entry_index = 0
-            i = nextIndex + 3
-          else
-            i = nextIndex + 1
-          end
         end
       end
-      rows
+    end
+    rows
+  end
+
+
+  def api_comparison(comparator, value, field, type, is_array)
+
+    if is_array
+      field_string = 'ANY(' + field + ')'
+    else
+      field_string = field
     end
 
+    if comparator == 'is'
 
-    def api_comparison(comparator, value, field, type, is_array)
+      ActiveRecord::Base.connection.quote(value.to_s) + ' = ' + field_string
+
+    elsif comparator == 'not'
+
+      ActiveRecord::Base.connection.quote(value.to_s) + ' <> ' + field_string
+
+    elsif comparator == 'gt'
+
+      ActiveRecord::Base.connection.quote(value.to_s) + ' < ' + field_string
+
+    elsif comparator == 'gte'
+
+      ActiveRecord::Base.connection.quote(value.to_s) + ' <= ' + field_string
+
+    elsif comparator == 'lt'
+
+      ActiveRecord::Base.connection.quote(value.to_s) + ' > ' + field_string
+
+    elsif comparator == 'lte'
+
+      ActiveRecord::Base.connection.quote(value.to_s) + ' >= ' + field_string
+
+    elsif comparator == 'in' || comparator == 'not_in'
+
+      unless value.is_a?(Array)
+
+        if value.is_a?(Range)
+          value = value.to_a
+        else
+          value = [value.to_s]
+        end
+      end
 
       if is_array
-        field_string = 'ANY(' + field + ')'
-      else
-        field_string = field
-      end
 
-      if comparator == 'is'
+        type_convert = {
+          boolean: '::boolean',
+          integer: '::integer',
+          float: '::float'
+        }[type]
 
-        ActiveRecord::Base.connection.quote(value.to_s) + ' = ' + field_string
+        type_convert = '::text' if type.nil?
 
-      elsif comparator == 'not'
-
-        ActiveRecord::Base.connection.quote(value.to_s) + ' <> ' + field_string
-
-      elsif comparator == 'gt'
-
-        ActiveRecord::Base.connection.quote(value.to_s) + ' < ' + field_string
-
-      elsif comparator == 'gte'
-
-        ActiveRecord::Base.connection.quote(value.to_s) + ' <= ' + field_string
-
-      elsif comparator == 'lt'
-
-        ActiveRecord::Base.connection.quote(value.to_s) + ' > ' + field_string
-
-      elsif comparator == 'lte'
-
-        ActiveRecord::Base.connection.quote(value.to_s) + ' >= ' + field_string
-
-      elsif comparator == 'in' || comparator == 'not_in'
-
-        unless value.is_a?(Array)
-
-          if value.is_a?(Range)
-            value = value.to_a
-          else
-            value = [value.to_s]
-          end
-        end
-
-        if is_array
-
-          type_convert = {
-            boolean: '::boolean',
-            integer: '::integer',
-            float: '::float'
-          }[type]
-
-          type_convert = '::text' if type.nil?
-
-          if comparator == 'in'
-            'ARRAY[' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ']' + type_convert + '[] && ' + field
-          else
-            'NOT ARRAY[' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ']' + type_convert + '[] && ' + field
-          end
-
+        if comparator == 'in'
+          'ARRAY[' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ']' + type_convert + '[] && ' + field
         else
-
-          if comparator == 'in'
-            field + ' IN(' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ')'
-          else
-            field + ' NOT IN(' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ')'
-          end
-
+          'NOT ARRAY[' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ']' + type_convert + '[] && ' + field
         end
 
-      elsif comparator == 'contains'
-
-        field_string + ' LIKE \'%\' || ' + ActiveRecord::Base.connection.quote(value.to_s) + ' || \'%\''
-
-      elsif comparator == 'icontains'
-
-        field_string + ' ILIKE \'%\' || ' + ActiveRecord::Base.connection.quote(value.to_s) + ' || \'%\''
-
-      elsif comparator == 'is_null'
-
-        'NULL = ' + field_string
-
-      elsif comparator == 'not_null'
-
-        'NOT NULL = ' + field_string
-
-      end
-
-    end
-
-    def api_convert_type(val, type, is_array = false)
-      if is_array
-        parse_postgres_array(val).map { |inner_value| api_convert_value(inner_value, type) }
       else
-        api_convert_value(val, type)
-      end
-    end
 
-    def api_convert_value(val, type)
-      if val
-        case type
-        when :integer
-          val.to_i
-        when :float
-          val.to_f
-        when :boolean
-          { 't' => true, 'f' => false }[val]
+        if comparator == 'in'
+          field + ' IN(' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ')'
         else
-          val
+          field + ' NOT IN(' + (value.map { |val| ActiveRecord::Base.connection.quote(val.to_s) }).join(',') + ')'
         end
+
       end
+
+    elsif comparator == 'contains'
+
+      field_string + ' LIKE \'%\' || ' + ActiveRecord::Base.connection.quote(value.to_s) + ' || \'%\''
+
+    elsif comparator == 'icontains'
+
+      field_string + ' ILIKE \'%\' || ' + ActiveRecord::Base.connection.quote(value.to_s) + ' || \'%\''
+
+    elsif comparator == 'is_null'
+
+      'NULL = ' + field_string
+
+    elsif comparator == 'not_null'
+
+      'NOT NULL = ' + field_string
+
     end
 
-    def parse_filters(filters, safe = false, model = nil)
+  end
 
-      self_obj = model ? model : @model
-      self_string_table = model ? "__#{model.to_s.tableize}" : @model.to_s.tableize
+  def api_convert_type(val, type, is_array = false)
+    if is_array
+      parse_postgres_array(val).map { |inner_value| api_convert_value(inner_value, type) }
+    else
+      api_convert_value(val, type)
+    end
+  end
 
-      filters = filters.clone.symbolize_keys
-      # if we're at the top level...
-      if model.nil?
+  def api_convert_value(val, type)
+    if val
+      case type
+      when :integer
+        val.to_i
+      when :float
+        val.to_f
+      when :boolean
+        { 't' => true, 'f' => false }[val]
+      else
+        val
+      end
+    end
+  end
 
-        if safe
-          filters.each do |key, value|
-            found_index = key.to_s.rindex('__')
-            key_root = found_index ? key.to_s[0..found_index].to_sym : key
+  def parse_filters(filters, safe = false, model = nil)
 
-            if [:__order, :__offset, :__count].exclude?(key) && self_obj.fastapi_filters_whitelist.exclude?(key_root)
-              fail %(Filter "#{key}" not supported.)
-            end
+    self_obj = model ? model : @model
+    self_string_table = model ? "__#{model.to_s.tableize}" : @model.to_s.tableize
+
+    filters = filters.clone.symbolize_keys
+    # if we're at the top level...
+    if model.nil?
+
+      if safe
+        filters.each do |key, value|
+          found_index = key.to_s.rindex('__')
+          key_root = found_index ? key.to_s[0..found_index].to_sym : key
+
+          if [:__order, :__offset, :__count].exclude?(key) && self_obj.fastapi_filters_whitelist.exclude?(key_root)
+            fail %(Filter "#{key}" not supported.)
           end
         end
-
-        filters = @model.fastapi_filters.clone.merge(filters)
       end
 
-      params = filters.has_key?(:__params) ? [*filters.delete(:__params)] : []
-      filters[:__order] ||= [:created_at, :DESC]
+      filters = @model.fastapi_filters.clone.merge(filters)
+    end
+
+    params = filters.has_key?(:__params) ? [*filters.delete(:__params)] : []
+    filters[:__order] ||= [:created_at, :DESC]
+
+    filters.each do |key, value|
+
+      next if [:__order, :__offset, :__count, :__params].include?(key)
+
+      found_index = key.to_s.rindex('__')
+      key_root = found_index.nil? ? key : key.to_s[0...found_index].to_sym
+
+      if !self_obj.column_names.include?(key_root.to_s)
+        if !model.nil? || !(@model.reflect_on_all_associations(:has_many).map(&:name).include?(key_root)   ||
+                            @model.reflect_on_all_associations(:belongs_to).map(&:name).include?(key_root) ||
+                            @model.reflect_on_all_associations(:has_one).map(&:name).include?(key_root))
+          fail %(Filter "#{key}" not supported)
+        end
+      end
+    end
+
+
+    filter_array = []
+    filter_has_many = {}
+    filter_belongs_to = {}
+
+    order = nil
+    order_has_many = {}
+    order_belongs_to = {}
+
+    # get the order first
+
+    if filters.has_key?(:__order)
+
+      value = filters.delete(:__order)
+
+      order = value.clone()
+
+      if order.is_a?(String)
+        order = order.split(',')
+        if order.size < 2
+          order << 'ASC'
+        end
+      elsif order.is_a?(Array)
+        order = order.map { |v| v.to_s }
+        while order.size < 2
+          order << ''
+        end
+      else
+        order = ['', '']
+      end
+
+      order[1] = 'ASC' if ['ASC', 'DESC'].exclude?(order[1])
+
+      if model.nil? && @model.fastapi_custom_order.has_key?(order[0].to_sym)
+
+        order[0] = @model.fastapi_custom_order[order[0].to_sym].gsub('self.', self_string_table + '.')
+
+        if params.is_a?(Array)
+          order[0].gsub!(/\$params\[([\w-]+)\]/) { ActiveRecord::Base.connection.quote(params[Regexp.last_match[1].to_i].to_s) }
+        else
+          order[0].gsub!(/\$params\[([\w-]+)\]/) { ActiveRecord::Base.connection.quote(params[Regexp.last_match[1]].to_s) }
+        end
+
+        order[0] = "(#{order[0]})"
+        order = order.join(' ')
+      else
+
+        if self_obj.column_names.exclude?(order[0])
+          order = nil
+        else
+          order[0] = "#{self_string_table}.#{order[0]}"
+          order = order.join(' ')
+        end
+      end
+    end
+
+    if filters.size > 0
 
       filters.each do |key, value|
 
-        next if [:__order, :__offset, :__count, :__params].include?(key)
+        field = key.to_s
 
-        found_index = key.to_s.rindex('__')
-        key_root = found_index.nil? ? key : key.to_s[0...found_index].to_sym
-
-        if !self_obj.column_names.include?(key_root.to_s)
-          if !model.nil? || !(@model.reflect_on_all_associations(:has_many).map(&:name).include?(key_root)   ||
-                              @model.reflect_on_all_associations(:belongs_to).map(&:name).include?(key_root) ||
-                              @model.reflect_on_all_associations(:has_one).map(&:name).include?(key_root))
-            fail %(Filter "#{key}" not supported)
-          end
-        end
-      end
-
-
-      filter_array = []
-      filter_has_many = {}
-      filter_belongs_to = {}
-
-      order = nil
-      order_has_many = {}
-      order_belongs_to = {}
-
-      # get the order first
-
-      if filters.has_key?(:__order)
-
-        value = filters.delete(:__order)
-
-        order = value.clone()
-
-        if order.is_a?(String)
-          order = order.split(',')
-          if order.size < 2
-            order << 'ASC'
-          end
-        elsif order.is_a?(Array)
-          order = order.map { |v| v.to_s }
-          while order.size < 2
-            order << ''
-          end
-        else
-          order = ['', '']
-        end
-
-        order[1] = 'ASC' if ['ASC', 'DESC'].exclude?(order[1])
-
-        if model.nil? && @model.fastapi_custom_order.has_key?(order[0].to_sym)
-
-          order[0] = @model.fastapi_custom_order[order[0].to_sym].gsub('self.', self_string_table + '.')
-
-          if params.is_a?(Array)
-            order[0].gsub!(/\$params\[([\w-]+)\]/) { ActiveRecord::Base.connection.quote(params[Regexp.last_match[1].to_i].to_s) }
-          else
-            order[0].gsub!(/\$params\[([\w-]+)\]/) { ActiveRecord::Base.connection.quote(params[Regexp.last_match[1]].to_s) }
-          end
-
-          order[0] = "(#{order[0]})"
-          order = order.join(' ')
+        if field.rindex('__').nil?
+          comparator = 'is'
         else
 
-          if self_obj.column_names.exclude?(order[0])
-            order = nil
-          else
-            order[0] = "#{self_string_table}.#{order[0]}"
-            order = order.join(' ')
+          comparator = field[(field.rindex('__') + 2)..-1]
+          field = field[0...field.rindex('__')]
+
+          if @@api_comparator_list.exclude?(comparator)
+            next # skip dis bro
           end
         end
-      end
 
-      if filters.size > 0
+        if model.nil? && self_obj.reflect_on_all_associations(:has_many).map(&:name).include?(key)
 
-        filters.each do |key, value|
+          filter_result        = parse_filters(value, safe, field.singularize.classify.constantize)
+          filter_has_many[key] = filter_result[:main]
+          order_has_many[key]  = filter_result[:main_order]
 
-          field = key.to_s
+        elsif model.nil? && (self_obj.reflect_on_all_associations(:belongs_to).map(&:name).include?(key) ||
+          self_obj.reflect_on_all_associations(:has_one).map(&:name).include?(key))
 
-          if field.rindex('__').nil?
-            comparator = 'is'
-          else
+          filter_result          = parse_filters(value, safe, field.singularize.classify.constantize)
+          filter_belongs_to[key] = filter_result[:main]
+          order_belongs_to[key]  = filter_result[:main_order]
 
-            comparator = field[(field.rindex('__') + 2)..-1]
-            field = field[0...field.rindex('__')]
+        elsif self_obj.column_names.include?(field)
 
-            if @@api_comparator_list.exclude?(comparator)
-              next # skip dis bro
-            end
+          base_field   = "#{self_string_table}.#{field}"
+          field_string = base_field
+          is_array     = false
+
+          if self_obj.columns_hash[field].respond_to?('array') && self_obj.columns_hash[field].array == true
+
+            field_string = 'ANY(' + field_string + ')'
+            is_array = true
           end
 
-          if model.nil? && self_obj.reflect_on_all_associations(:has_many).map(&:name).include?(key)
+          if self_obj.columns_hash[field].type == :boolean
 
-            filter_result        = parse_filters(value, safe, field.singularize.classify.constantize)
-            filter_has_many[key] = filter_result[:main]
-            order_has_many[key]  = filter_result[:main_order]
+            if !!value != value
 
-          elsif model.nil? && (self_obj.reflect_on_all_associations(:belongs_to).map(&:name).include?(key) ||
-            self_obj.reflect_on_all_associations(:has_one).map(&:name).include?(key))
+              bool_lookup = {
+                't' => true,
+                'f' => false,
+                'true' => true,
+                'false' => false
+              }
 
-            filter_result          = parse_filters(value, safe, field.singularize.classify.constantize)
-            filter_belongs_to[key] = filter_result[:main]
-            order_belongs_to[key]  = filter_result[:main_order]
+              value = value.to_s.downcase
 
-          elsif self_obj.column_names.include?(field)
-
-            base_field   = "#{self_string_table}.#{field}"
-            field_string = base_field
-            is_array     = false
-
-            if self_obj.columns_hash[field].respond_to?('array') && self_obj.columns_hash[field].array == true
-
-              field_string = 'ANY(' + field_string + ')'
-              is_array = true
+              if bool_lookup.has_key? value
+                value = bool_lookup[value]
+              else
+                value = true
+              end
             end
 
-            if self_obj.columns_hash[field].type == :boolean
-
-              if !!value != value
-
-                bool_lookup = {
-                  't' => true,
-                  'f' => false,
-                  'true' => true,
-                  'false' => false
-                }
-
-                value = value.to_s.downcase
-
-                if bool_lookup.has_key? value
-                  value = bool_lookup[value]
-                else
-                  value = true
-                end
-              end
-
-              if !!value == value
-
-                if comparator == 'is'
-                  filter_array << value.to_s.upcase + ' = ' + field_string
-                elsif comparator == 'not'
-                  filter_array << 'NOT ' + value.to_s.upcase + ' = ' + field_string
-                end
-              end
-
-            elsif value == nil && comparator != 'is_null' && comparator != 'not_null'
+            if !!value == value
 
               if comparator == 'is'
-                filter_array << 'NULL = ' + field_string
+                filter_array << value.to_s.upcase + ' = ' + field_string
               elsif comparator == 'not'
-                filter_array << 'NOT NULL = ' + field_string
+                filter_array << 'NOT ' + value.to_s.upcase + ' = ' + field_string
               end
-
-            elsif value.is_a?(Range) && comparator == 'is'
-              filter_array << ActiveRecord::Base.connection.quote(value.first.to_s) + ' <= ' + field_string
-              filter_array << ActiveRecord::Base.connection.quote(value.last.to_s) + ' >= ' + field_string
-            else
-              filter_array << api_comparison(comparator, value, base_field, self_obj.columns_hash[field].type, is_array)
             end
+
+          elsif value == nil && comparator != 'is_null' && comparator != 'not_null'
+
+            if comparator == 'is'
+              filter_array << 'NULL = ' + field_string
+            elsif comparator == 'not'
+              filter_array << 'NOT NULL = ' + field_string
+            end
+
+          elsif value.is_a?(Range) && comparator == 'is'
+            filter_array << ActiveRecord::Base.connection.quote(value.first.to_s) + ' <= ' + field_string
+            filter_array << ActiveRecord::Base.connection.quote(value.last.to_s) + ' >= ' + field_string
+          else
+            filter_array << api_comparison(comparator, value, base_field, self_obj.columns_hash[field].type, is_array)
           end
         end
       end
-
-      {
-        main: filter_array,
-        main_order: order,
-        has_many: filter_has_many,
-        has_many_order: order_has_many,
-        belongs_to: filter_belongs_to,
-        belongs_to_order: order_belongs_to
-      }
     end
 
-    def api_generate_sql(filters, offset, count, safe = false)
+    {
+      main: filter_array,
+      main_order: order,
+      has_many: filter_has_many,
+      has_many_order: order_has_many,
+      belongs_to: filter_belongs_to,
+      belongs_to_order: order_belongs_to
+    }
+  end
 
-      filters = parse_filters(filters, safe)
+  def api_generate_sql(filters, offset, count, safe = false)
 
-      fields = []
-      belongs = []
-      has_many = []
+    filters = parse_filters(filters, safe)
 
-      model_lookup = {}
+    fields = []
+    belongs = []
+    has_many = []
 
-      filter_fields = []
-      filter_fields.concat(@model.fastapi_fields)
-      filter_fields.concat(@whitelist_fields)
+    model_lookup = {}
 
-      filter_fields.each do |field|
+    filter_fields = []
+    filter_fields.concat(@model.fastapi_fields)
+    filter_fields.concat(@whitelist_fields)
 
-        if @model.reflect_on_all_associations(:belongs_to).map(&:name).include?(field) ||
-          @model.reflect_on_all_associations(:has_one).map(&:name).include?(field)
+    filter_fields.each do |field|
 
-          class_name = @model.reflect_on_association(field).options[:class_name]
+      if @model.reflect_on_all_associations(:belongs_to).map(&:name).include?(field) ||
+        @model.reflect_on_all_associations(:has_one).map(&:name).include?(field)
 
-          if class_name.nil?
-            model = field.to_s.classify.constantize
-          else
-            model = class_name.constantize
-          end
+        class_name = @model.reflect_on_association(field).options[:class_name]
 
-          model_lookup[field] = model
-          belongs << {model: model, alias: field}
-
-        elsif @model.reflect_on_all_associations(:has_many).map(&:name).include?(field)
-
-          model = field.to_s.singularize.classify.constantize
-          model_lookup[field] = model
-          has_many << model
-
-        elsif @model.column_names.include?(field.to_s)
-
-          fields << field
+        if class_name.nil?
+          model = field.to_s.classify.constantize
+        else
+          model = class_name.constantize
         end
+
+        model_lookup[field] = model
+        belongs << {model: model, alias: field}
+
+      elsif @model.reflect_on_all_associations(:has_many).map(&:name).include?(field)
+
+        model = field.to_s.singularize.classify.constantize
+        model_lookup[field] = model
+        has_many << model
+
+      elsif @model.column_names.include?(field.to_s)
+
+        fields << field
       end
+    end
 
-      self_string = @model.to_s.tableize.singularize
-      self_string_table = @model.to_s.tableize
+    self_string = @model.to_s.tableize.singularize
+    self_string_table = @model.to_s.tableize
 
-      field_list = []
-      joins = []
+    field_list = []
+    joins = []
 
-      # Base fields
-      fields.each do |field|
+    # Base fields
+    fields.each do |field|
 
+      field_string = field.to_s
+      field_list << [
+        self_string_table,
+        '.',
+        field_string,
+        ' as ',
+        field_string
+      ].join('')
+
+    end
+
+    # Belongs fields (1 to 1)
+    belongs.each do |model_data|
+
+      model_string_table = model_data[:model].to_s.tableize
+      model_string_table_alias = model_data[:alias].to_s.pluralize
+
+      model_string_field = model_data[:alias].to_s
+
+      # fields
+      model_data[:model].fastapi_fields_sub.each do |field|
         field_string = field.to_s
         field_list << [
-          self_string_table,
+          model_string_table_alias,
           '.',
           field_string,
           ' as ',
+          model_string_field,
+          '__',
           field_string
         ].join('')
-
       end
 
-      # Belongs fields (1 to 1)
-      belongs.each do |model_data|
+      # joins
+      joins << [
+        'LEFT JOIN',
+          model_string_table,
+        'AS',
+          model_string_table_alias,
+        'ON',
+          model_string_table_alias + '.id',
+          '=',
+          self_string_table + '.' + model_string_field + '_id'
+      ].join(' ')
 
-        model_string_table = model_data[:model].to_s.tableize
-        model_string_table_alias = model_data[:alias].to_s.pluralize
-
-        model_string_field = model_data[:alias].to_s
-
-        # fields
-        model_data[:model].fastapi_fields_sub.each do |field|
-          field_string = field.to_s
-          field_list << [
-            model_string_table_alias,
-            '.',
-            field_string,
-            ' as ',
-            model_string_field,
-            '__',
-            field_string
-          ].join('')
-        end
-
-        # joins
-        joins << [
-          'LEFT JOIN',
-            model_string_table,
-          'AS',
-            model_string_table_alias,
-          'ON',
-            model_string_table_alias + '.id',
-            '=',
-            self_string_table + '.' + model_string_field + '_id'
-        ].join(' ')
-
-      end
-
-      # Many fields (Many to 1)
-      has_many.each do |model|
-
-        model_string_table = model.to_s.tableize
-        model_symbol = model_string_table.to_sym
-
-        model_fields = []
-
-        model.fastapi_fields_sub.each do |field|
-          field_string = field.to_s
-          model_fields << [
-            '__' + model_string_table + '.' + field_string,
-          ].join(' ')
-        end
-
-        has_many_filters = ''
-        has_many_order = ''
-        if filters[:has_many].has_key? model_symbol
-
-          if filters[:has_many][model_symbol].count > 0
-            has_many_filters = 'AND ' + filters[:has_many][model_symbol].join(' AND ')
-          end
-
-          if filters[:has_many_order][model_symbol]
-            has_many_order = 'ORDER BY ' + filters[:has_many_order][model_symbol]
-          end
-        end
-
-        field_list << [
-          'ARRAY_TO_STRING(ARRAY(',
-            'SELECT',
-              'ROW(',
-              model_fields.join(', '),
-              ')',
-            'FROM',
-              model_string_table,
-              'as',
-              '__' + model_string_table,
-            'WHERE',
-              '__' + model_string_table + '.' + self_string + '_id IS NOT NULL',
-              'AND __' + model_string_table + '.' + self_string + '_id',
-              '=',
-              self_string_table + '.id',
-              has_many_filters,
-              has_many_order,
-          '), \',\')',
-          'as',
-          '__many__' + model_string_table
-        ].join(' ')
-      end
-
-      filter_string = (filters[:main].size > 0 ? ('WHERE ' + filters[:main].join(' AND ')) : '')
-      order_string = (filters[:main_order].nil? ? '' : 'ORDER BY ' + filters[:main_order])
-
-      {
-        query: [
-          'SELECT',
-            field_list.join(', '),
-          'FROM',
-            self_string_table,
-          joins.join(' '),
-          filter_string,
-          order_string,
-          'LIMIT',
-            count.to_s,
-          'OFFSET',
-            offset.to_s,
-        ].join(' '),
-        count_query: [
-          'SELECT COUNT(id) FROM',
-            self_string_table,
-          filter_string
-        ].join(' '),
-        models: model_lookup
-      }
     end
+
+    # Many fields (Many to 1)
+    has_many.each do |model|
+
+      model_string_table = model.to_s.tableize
+      model_symbol = model_string_table.to_sym
+
+      model_fields = []
+
+      model.fastapi_fields_sub.each do |field|
+        field_string = field.to_s
+        model_fields << [
+          '__' + model_string_table + '.' + field_string,
+        ].join(' ')
+      end
+
+      has_many_filters = ''
+      has_many_order = ''
+      if filters[:has_many].has_key? model_symbol
+
+        if filters[:has_many][model_symbol].count > 0
+          has_many_filters = 'AND ' + filters[:has_many][model_symbol].join(' AND ')
+        end
+
+        if filters[:has_many_order][model_symbol]
+          has_many_order = 'ORDER BY ' + filters[:has_many_order][model_symbol]
+        end
+      end
+
+      field_list << [
+        'ARRAY_TO_STRING(ARRAY(',
+          'SELECT',
+            'ROW(',
+            model_fields.join(', '),
+            ')',
+          'FROM',
+            model_string_table,
+            'as',
+            '__' + model_string_table,
+          'WHERE',
+            '__' + model_string_table + '.' + self_string + '_id IS NOT NULL',
+            'AND __' + model_string_table + '.' + self_string + '_id',
+            '=',
+            self_string_table + '.id',
+            has_many_filters,
+            has_many_order,
+        '), \',\')',
+        'as',
+        '__many__' + model_string_table
+      ].join(' ')
+    end
+
+    filter_string = (filters[:main].size > 0 ? ('WHERE ' + filters[:main].join(' AND ')) : '')
+    order_string = (filters[:main_order].nil? ? '' : 'ORDER BY ' + filters[:main_order])
+
+    {
+      query: [
+        'SELECT',
+          field_list.join(', '),
+        'FROM',
+          self_string_table,
+        joins.join(' '),
+        filter_string,
+        order_string,
+        'LIMIT',
+          count.to_s,
+        'OFFSET',
+          offset.to_s,
+      ].join(' '),
+      count_query: [
+        'SELECT COUNT(id) FROM',
+          self_string_table,
+        filter_string
+      ].join(' '),
+      models: model_lookup
+    }
+  end
 end
