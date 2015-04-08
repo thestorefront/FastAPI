@@ -48,31 +48,29 @@ module FastAPIExtension
     end
 
     def fastapi_custom_order
-      @fastapi_custom_order or {}
+      @fastapi_custom_order || {}
     end
 
     def fastapi_fields
-      @fastapi_fields or [:id]
+      @fastapi_fields || [:id]
     end
 
     def fastapi_fields_sub
-      @fastapi_fields_sub or [:id]
+      @fastapi_fields_sub || [:id]
     end
 
     def fastapi_filters_whitelist
-      @fastapi_filters_whitelist or @fastapi_fields or [:id]
+      @fastapi_filters_whitelist || @fastapi_fields || [:id]
     end
 
     def fastapi_filters
-      @fastapi_filters or {}
+      @fastapi_filters || {}
     end
 
     def fastapi
       FastAPI.new(self)
     end
-
   end
-
 end
 
 ActiveRecord::Base.send(:include, FastAPIExtension)
