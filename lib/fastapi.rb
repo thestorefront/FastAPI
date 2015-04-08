@@ -711,7 +711,8 @@ class FastAPI
         end
       end
 
-      { main: filter_array,
+      {
+        main: filter_array,
         main_order: order,
         has_many: filter_has_many,
         has_many_order: order_has_many,
