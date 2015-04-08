@@ -623,7 +623,7 @@ class FastAPI
 
     if filters.size > 0
 
-      filters.each do |key, value|
+      filters.each do |key, data|
 
         field = key.to_s
 
@@ -641,14 +641,14 @@ class FastAPI
 
         if model.nil? && self_obj.reflect_on_all_associations(:has_many).map(&:name).include?(key)
 
-          filter_result        = parse_filters(value, safe, field.singularize.classify.constantize)
+          filter_result        = parse_filters(data, safe, field.singularize.classify.constantize)
           filter_has_many[key] = filter_result[:main]
           order_has_many[key]  = filter_result[:main_order]
 
         elsif model.nil? && (self_obj.reflect_on_all_associations(:belongs_to).map(&:name).include?(key) ||
           self_obj.reflect_on_all_associations(:has_one).map(&:name).include?(key))
 
-          filter_result          = parse_filters(value, safe, field.singularize.classify.constantize)
+          filter_result          = parse_filters(data, safe, field.singularize.classify.constantize)
           filter_belongs_to[key] = filter_result[:main]
           order_belongs_to[key]  = filter_result[:main_order]
 
@@ -666,34 +666,18 @@ class FastAPI
 
           if self_obj.columns_hash[field].type == :boolean
 
-            if !!value != value
-
-              bool_lookup = {
-                't' => true,
-                'f' => false,
-                'true' => true,
-                'false' => false
-              }
-
-              value = value.to_s.downcase
-
-              if bool_lookup.has_key? value
-                value = bool_lookup[value]
-              else
-                value = true
-              end
+            # if data is not a boolean
+            if !!data != data
+              data = ['f', 'false'].include?(data) ? false : true
             end
 
-            if !!value == value
-
-              if comparator == 'is'
-                filter_array << value.to_s.upcase + ' = ' + field_string
-              elsif comparator == 'not'
-                filter_array << 'NOT ' + value.to_s.upcase + ' = ' + field_string
-              end
+            if comparator == 'is'
+              filter_array << data.to_s.upcase + ' = ' + field_string
+            elsif comparator == 'not'
+              filter_array << 'NOT ' + data.to_s.upcase + ' = ' + field_string
             end
 
-          elsif value == nil && comparator != 'is_null' && comparator != 'not_null'
+          elsif data == nil && comparator != 'is_null' && comparator != 'not_null'
 
             if comparator == 'is'
               filter_array << 'NULL = ' + field_string
@@ -701,11 +685,11 @@ class FastAPI
               filter_array << 'NOT NULL = ' + field_string
             end
 
-          elsif value.is_a?(Range) && comparator == 'is'
-            filter_array << ActiveRecord::Base.connection.quote(value.first.to_s) + ' <= ' + field_string
-            filter_array << ActiveRecord::Base.connection.quote(value.last.to_s) + ' >= ' + field_string
+          elsif data.is_a?(Range) && comparator == 'is'
+            filter_array << ActiveRecord::Base.connection.quote(data.first.to_s) + ' <= ' + field_string
+            filter_array << ActiveRecord::Base.connection.quote(data.last.to_s) + ' >= ' + field_string
           else
-            filter_array << api_comparison(comparator, value, base_field, self_obj.columns_hash[field].type, is_array)
+            filter_array << api_comparison(comparator, data, base_field, self_obj.columns_hash[field].type, is_array)
           end
         end
       end
