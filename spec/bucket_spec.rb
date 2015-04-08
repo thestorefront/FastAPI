@@ -86,6 +86,42 @@ describe Bucket do
     end
   end
 
+  describe 'when locating a bucket using a boolean' do
+    let!(:bucket)      { create(:bucket) }
+    let!(:used_bucket) { create(:used_bucket) }
+    let(:response) { ModelHelper.response(Bucket, used: true) }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id color material person marbles used) } }
+    end
+
+    it 'returns a used bucket' do
+      expect(response['data'].first['used']).to eq true
+    end
+  end
+
+  describe 'when locating a bucket using a boolean string' do
+    let!(:bucket)      { create(:bucket) }
+    let!(:used_bucket) { create(:used_bucket) }
+    let(:response) { ModelHelper.response(Bucket, used: 't') }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id color material person marbles used) } }
+    end
+
+    it 'returns a used bucket' do
+      expect(response['data'].first['used']).to eq true
+    end
+  end
+
   describe 'when locating a bucket by id' do
     let!(:bucket)        { create(:bucket) }
     let(:response)       { ModelHelper.fetch(Bucket, bucket.id) }
@@ -126,7 +162,7 @@ describe Bucket do
 
     it_behaves_like 'fastapi_data' do
       let(:expected) { { data: response['data'].first['buckets'].first,
-                         attributes: %w(id color material) } }
+                         attributes: %w(id color material used) } }
     end
   end
 
@@ -140,7 +176,7 @@ describe Bucket do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { data: incomplete_bucket, attributes: %w(id color material) } }
+      let(:expected) { { data: incomplete_bucket, attributes: %w(id color material used) } }
     end
 
     it 'has a nil color' do

@@ -2,6 +2,11 @@ FactoryGirl.define do
   factory :bucket do
     color    { %w(red green blue black white orange).sample }
     material { %w(wood plastic paper concrete).sample }
+    used     false
+
+    factory :used_bucket do
+      used true
+    end
 
     factory :red_plastic_bucket do
       color    'red'
