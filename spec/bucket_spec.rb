@@ -10,7 +10,7 @@ describe Bucket do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id color material person marbles) } }
+      let(:expected) { { attributes: %w(id color material person marbles used) } }
     end
   end
 
@@ -23,7 +23,7 @@ describe Bucket do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id color material person marbles) } }
+      let(:expected) { { attributes: %w(id color material person marbles used) } }
     end
   end
 
@@ -50,7 +50,7 @@ describe Bucket do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id color material person marbles) } }
+      let(:expected) { { attributes: %w(id color material person marbles used) } }
     end
   end
 
@@ -63,7 +63,7 @@ describe Bucket do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id color material person marbles created_at) } }
+      let(:expected) { { attributes: %w(id color material person marbles used created_at) } }
     end
   end
 
@@ -77,7 +77,7 @@ describe Bucket do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id color material person marbles) } }
+      let(:expected) { { attributes: %w(id color material person marbles used) } }
     end
 
     it 'returns only marbles that match the default filter' do
@@ -96,7 +96,7 @@ describe Bucket do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id color material person marbles) } }
+      let(:expected) { { attributes: %w(id color material person marbles used) } }
     end
 
     it 'has the correct id' do

@@ -3,6 +3,7 @@ ActiveRecord::Schema.define(version: 20150330000000) do
     t.string   'color'
     t.string   'material'
     t.integer  'person_id'
+    t.boolean  'used'
 
     t.timestamps null: false
   end
