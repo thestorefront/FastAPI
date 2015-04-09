@@ -1,5 +1,5 @@
 require 'oj'
-require 'fastapi/active_record_extension.rb'
+require 'fastapi/active_record_extension'
 
 class FastAPI
 
@@ -672,9 +672,9 @@ class FastAPI
             end
 
             if comparator == 'is'
-              filter_array << data.to_s.upcase + ' = ' + field_string
+              filter_array << "#{data.to_s.upcase} = #{field_string}"
             elsif comparator == 'not'
-              filter_array << 'NOT ' + data.to_s.upcase + ' = ' + field_string
+              filter_array << "NOT #{data.to_s.upcase} = #{field_string}"
             end
 
           elsif data == nil && comparator != 'is_null' && comparator != 'not_null'
