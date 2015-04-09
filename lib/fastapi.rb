@@ -262,9 +262,10 @@ class FastAPI
   # the two following methods are very similar, can reuse
 
   def parse_postgres_array(str)
+    values = []
 
     unless i = str.is_a?(String) && str.index('{')
-      return []
+      values
     end
 
     i += 1
