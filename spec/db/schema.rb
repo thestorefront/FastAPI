@@ -27,4 +27,13 @@ ActiveRecord::Schema.define(version: 20150330000000) do
 
     t.timestamps null: false
   end
+
+  create_table 'dishes', force: true do |t|
+    t.string   'name'
+    t.string   'ingredients', array: true, default: []
+
+    t.timestamps null: false
+  end
+
+  add_index 'dishes', ['ingredients'], name: 'index_dishes_on_ingredients', using: :btree
 end
