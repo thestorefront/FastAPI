@@ -188,6 +188,24 @@ describe Bucket do
     end
   end
 
+  describe 'when locating buckets with quotes and spaces in the color associated with a person' do
+    let!(:person)      { create(:person_with_buckets_with_quotes_and_spaces) }
+    let(:response)     { ModelHelper.response(Person) }
+    let(:buckets)    { response['data'].first['buckets'] }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { data: buckets.first, attributes: %w(id color material used) } }
+    end
+
+    it 'it should parse colors correctly' do
+      expect(buckets.map { |b| b['color'] }.sort).to eq ['"abc def"', '" abcdef"', '"abcdef "'].sort
+    end
+  end
+
   describe 'when spoofing a bucket with no meta' do
     let(:bucket)   { Bucket.fastapi.spoof([{id: 1, color: 'blue' }]) }
     let(:response) { JSON.parse(bucket) }
