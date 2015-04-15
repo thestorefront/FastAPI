@@ -89,7 +89,7 @@ describe Bucket do
   describe 'when locating a bucket using a boolean' do
     let!(:bucket)      { create(:bucket) }
     let!(:used_bucket) { create(:used_bucket) }
-    let(:response) { ModelHelper.response(Bucket, used: true) }
+    let(:response)     { ModelHelper.response(Bucket, used: true) }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
@@ -107,7 +107,7 @@ describe Bucket do
   describe 'when locating a bucket using a boolean string' do
     let!(:bucket)      { create(:bucket) }
     let!(:used_bucket) { create(:used_bucket) }
-    let(:response) { ModelHelper.response(Bucket, used: 't') }
+    let(:response)     { ModelHelper.response(Bucket, used: 't') }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
@@ -189,9 +189,9 @@ describe Bucket do
   end
 
   describe 'when locating buckets with quotes and spaces in the color associated with a person' do
-    let!(:person)      { create(:person_with_buckets_with_quotes_and_spaces) }
-    let(:response)     { ModelHelper.response(Person) }
-    let(:buckets)    { response['data'].first['buckets'] }
+    let!(:person)  { create(:person_with_buckets_with_quotes_and_spaces) }
+    let(:response) { ModelHelper.response(Person) }
+    let(:buckets)  { response['data'].first['buckets'] }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }

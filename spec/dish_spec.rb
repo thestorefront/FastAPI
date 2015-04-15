@@ -33,7 +33,7 @@ describe Dish do
   end
 
   describe 'when locating a beverage associated with a dish' do
-    let!(:dish) { create(:burrito_with_coke) }
+    let!(:dish)    { create(:burrito_with_coke) }
     let(:response) { ModelHelper.response(Dish, name: 'burrito') }
     let(:beverage) { response['data'].first['beverage'] }
 
