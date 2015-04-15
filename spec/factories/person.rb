@@ -49,5 +49,14 @@ FactoryGirl.define do
                    color: '"abcdef "', material: 'paper')
       end
     end
+
+    factory :person_with_dishes do
+      name 'Person with Dishes'
+
+      after(:create) do |person|
+        create_list(:burrito, 1, person: person)
+        create_list(:cheeseburger, 1, person: person)
+      end
+    end
   end
 end

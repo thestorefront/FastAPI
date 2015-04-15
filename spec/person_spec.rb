@@ -10,7 +10,7 @@ describe Person do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets) } }
+      let(:expected) { { attributes: %w(id name gender age buckets dishes) } }
     end
   end
 
@@ -23,7 +23,7 @@ describe Person do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets) } }
+      let(:expected) { { attributes: %w(id name gender age buckets dishes) } }
     end
   end
 
@@ -36,7 +36,7 @@ describe Person do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets created_at) } }
+      let(:expected) { { attributes: %w(id name gender age buckets dishes created_at) } }
     end
   end
 
@@ -50,7 +50,7 @@ describe Person do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets) } }
+      let(:expected) { { attributes: %w(id name gender age buckets dishes) } }
     end
 
     it 'has the correct id' do
