@@ -14,7 +14,7 @@ describe Dish do
     end
   end
 
-  describe 'when locating a dish by ingredient' do
+  describe 'when locating a dish by ingredient using in' do
     let!(:cheeseburger)    { create(:cheeseburger) }
     let!(:margarita_pizza) { create(:margarita_pizza) }
     let(:response)         { ModelHelper.response(Dish, ingredients__in: ['pickle']) }
@@ -29,6 +29,24 @@ describe Dish do
 
     it 'contains pickles' do
       expect(response['data'].first['ingredients']).to include('pickle')
+    end
+  end
+
+  describe 'when locating a dish by ingredient using intersects' do
+    let!(:cheeseburger)    { create(:cheeseburger) }
+    let!(:margarita_pizza) { create(:margarita_pizza) }
+    let(:response)         { ModelHelper.response(Dish, ingredients__intersects: ['basil']) }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id name ingredients person beverage) } }
+    end
+
+    it 'contains pickles' do
+      expect(response['data'].first['ingredients']).to include('basil')
     end
   end
 
