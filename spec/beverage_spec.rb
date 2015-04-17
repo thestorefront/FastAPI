@@ -13,4 +13,17 @@ describe Beverage do
       let(:expected) { { attributes: %w(id name flavors dish) } }
     end
   end
+
+  describe 'when locating beverages with out a dish' do
+    let!(:beverage) { create(:coke) }
+    let(:response) { ModelHelper.response(Beverage, dish_id: nil) }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id name flavors dish) } }
+    end
+  end
 end
