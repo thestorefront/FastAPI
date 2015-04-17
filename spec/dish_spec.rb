@@ -17,7 +17,7 @@ describe Dish do
   describe 'when locating a dish by ingredient' do
     let!(:cheeseburger)    { create(:cheeseburger) }
     let!(:margarita_pizza) { create(:margarita_pizza) }
-    let(:response)         { ModelHelper.response(Dish, ingredients: 'pickle') }
+    let(:response)         { ModelHelper.response(Dish, ingredients__in: ['pickle']) }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
