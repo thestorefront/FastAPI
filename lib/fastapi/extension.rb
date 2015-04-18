@@ -1,6 +1,4 @@
-require 'active_record'
-
-module FastAPIExtension
+module Extension
 
   extend ActiveSupport::Concern
 
@@ -68,9 +66,9 @@ module FastAPIExtension
     end
 
     def fastapi
-      FastAPI.new(self)
+      FastAPI::Wrapper.new(self)
     end
   end
 end
 
-ActiveRecord::Base.send(:include, FastAPIExtension)
+ActiveRecord::Base.send(:include, Extension)
