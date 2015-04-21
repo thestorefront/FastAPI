@@ -338,11 +338,11 @@ class FastAPI
 
     elsif comparator == 'is_null'
 
-      'NULL = ' + field_string
+      "#{field_string} IS NULL"
 
     elsif comparator == 'not_null'
 
-      'NOT NULL = ' + field_string
+      "#{field_string} IS NOT NULL"
     end
   end
 
@@ -470,7 +470,6 @@ class FastAPI
     if filters.size > 0
 
       filters.each do |key, data|
-
         field = key.to_s
 
         if field.rindex('__').nil?
@@ -523,7 +522,6 @@ class FastAPI
             end
 
           elsif data == nil && comparator != 'is_null' && comparator != 'not_null'
-
             if comparator == 'is'
               filter_array << "#{field_string} IS NULL"
             elsif comparator == 'not'
