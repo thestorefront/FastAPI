@@ -525,9 +525,9 @@ class FastAPI
           elsif data == nil && comparator != 'is_null' && comparator != 'not_null'
 
             if comparator == 'is'
-              filter_array << "NULL = #{field_string}"
+              filter_array << "#{field_string} IS NULL"
             elsif comparator == 'not'
-              filter_array << "NOT NULL = #{field_string}"
+              filter_array << "#{field_string} IS NOT NULL"
             end
 
           elsif data.is_a?(Range) && comparator == 'is'
