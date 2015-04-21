@@ -309,7 +309,8 @@ class FastAPI
         type_convert = {
           boolean: '::boolean',
           integer: '::integer',
-          float: '::float'
+          float: '::float',
+          string: '::varchar'
         }[type]
 
         type_convert = '::text' if type.nil?
