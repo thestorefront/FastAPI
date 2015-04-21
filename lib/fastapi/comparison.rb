@@ -1,5 +1,3 @@
-require 'set'
-
 module FastAPI
   class Comparison
 
@@ -68,7 +66,7 @@ module FastAPI
     private
     def prepare_comparator(comparator, value, is_array)
       if value.nil?
-        :is_null
+        comparator == 'not_null' ? comparator : :is_null
       else
         is_array ? "#{comparator}_a" : comparator
       end

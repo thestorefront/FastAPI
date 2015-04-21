@@ -294,7 +294,6 @@ module FastAPI
         end
       end
 
-
       filter_array = []
       filter_has_many = {}
       filter_belongs_to = {}
@@ -304,7 +303,6 @@ module FastAPI
       order_belongs_to = {}
 
       # get the order first
-
       if filters.has_key?(:__order)
 
         value = filters.delete(:__order)
@@ -351,7 +349,6 @@ module FastAPI
       end
 
       filters.each do |key, data|
-
         field = key.to_s
 
         if field.rindex('__').nil?
