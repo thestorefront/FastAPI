@@ -3,7 +3,7 @@ module FastAPI
 
     def self.convert_type(val, type, field = nil)
       if val && is_array(field)
-        JSON.parse(val).map { |inner_value| convert_value(inner_value, type) }
+        Oj.load(val).map { |inner_value| convert_value(inner_value, type) }
       else
         convert_value(val, type)
       end
