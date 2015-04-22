@@ -244,7 +244,7 @@ module FastAPI
     end
 
     def parse_many(str, fields, types)
-      JSON.parse(str).map do |row|
+      Oj.load(str).map do |row|
         row.values.each_with_object({}).with_index do |(value, values), index|
           values[fields[index]] = FastAPI::Conversions.convert_type(value, types[index])
         end
