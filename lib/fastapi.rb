@@ -8,16 +8,16 @@ require 'fastapi/sql'
 require 'fastapi/utilities'
 
 module FastAPI
+
+  Oj.default_options = { mode: :compat }
+
   class Wrapper
     include FastAPI::Utilities
-
-    @@result_types = { single: 0, multiple: 1 }
 
     def initialize(model)
       @model = model
       @data = nil
       @metadata = nil
-      @result_type = 0
       @whitelist_fields = []
     end
 
@@ -43,9 +43,8 @@ module FastAPI
     def filter(filters = {}, meta = {}, safe = false)
       result = fastapi_query(filters, safe)
 
-      @metadata    = meta.merge(result.slice(:total, :offset, :count, :error))
-      @data        = result[:data]
-      @result_type = @@result_types[:multiple]
+      @metadata = meta.merge(result.slice(:total, :offset, :count, :error))
+      @data     = result[:data]
 
       self
     end
@@ -87,7 +86,7 @@ module FastAPI
     #
     # @return [String] available data in JSON format
     def data_json
-      Oj.dump(@data, mode: :compat)
+      Oj.dump(@data)
     end
 
     # Returns the metadata from the most recently executed `filter` or `fetch` call.
@@ -101,7 +100,7 @@ module FastAPI
     #
     # @return [String] available metadata in JSON format
     def meta_json
-      Oj.dump(@metadata, mode: :compat)
+      Oj.dump(@metadata)
     end
 
     # Returns both the data and metadata from the most recently executed `filter` or `fetch` call.
@@ -115,7 +114,7 @@ module FastAPI
     #
     # @return [String] JSON data and metadata
     def response
-      Oj.dump(self.to_hash, mode: :compat)
+      Oj.dump(self.to_hash)
     end
 
     # Spoofs data from Model
@@ -126,7 +125,7 @@ module FastAPI
       meta[:count]  ||= data.count
       meta[:offset] ||= 0
 
-      Oj.dump({ meta: meta, data: data }, mode: :compat)
+      Oj.dump({ meta: meta, data: data })
     end
 
     # Returns a JSONified string representing a rejected API response with invalid fields parameters
@@ -145,7 +144,7 @@ module FastAPI
           }
         },
         data: []
-      }, mode: :compat)
+      })
     end
 
     # Returns a JSONified string representing a standardized empty API response, with a provided error message
@@ -159,11 +158,11 @@ module FastAPI
           offset: 0,
           count: 0,
           error: {
-            message: message.to_s
+            message: message
           }
         },
         data: []
-      }, mode: :compat)
+      })
     end
 
     private
@@ -201,7 +200,7 @@ module FastAPI
       begin
         count_result = ActiveRecord::Base.connection.execute(prepared_data[:count_query])
         result = ActiveRecord::Base.connection.execute(prepared_data[:query])
-      rescue StandardError => exception
+      rescue StandardError
         return error(offset, 'Query failed')
       end
 
@@ -256,8 +255,6 @@ module FastAPI
       self_obj = model ? model : @model
       self_string_table = model ? "__#{model.to_s.tableize}" : @model.to_s.tableize
 
-      filters = filters.clone.symbolize_keys
-
       # if we're at the top level...
       if model.nil?
 
@@ -305,9 +302,7 @@ module FastAPI
       # get the order first
       if filters.has_key?(:__order)
 
-        value = filters.delete(:__order)
-
-        order = value.clone()
+        order = filters.delete(:__order)
 
         if order.is_a?(String)
           order = order.split(',')
@@ -315,7 +310,7 @@ module FastAPI
             order << 'ASC'
           end
         elsif order.is_a?(Array)
-          order = order.map { |v| v.to_s }
+          order = order.map(&:to_s)
           while order.size < 2
             order << ''
           end
@@ -327,7 +322,7 @@ module FastAPI
 
         if model.nil? && @model.fastapi_custom_order.has_key?(order[0].to_sym)
 
-          order[0] = @model.fastapi_custom_order[order[0].to_sym].gsub('self.', self_string_table + '.')
+          order[0] = @model.fastapi_custom_order[order[0].to_sym].gsub('self.', "#{self_string_table}.")
 
           if params.is_a?(Array)
             order[0].gsub!(/\$params\[([\w-]+)\]/) { ActiveRecord::Base.connection.quote(params[Regexp.last_match[1].to_i].to_s) }
