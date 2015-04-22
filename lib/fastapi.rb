@@ -259,7 +259,7 @@ class FastAPI
   end
 
   def parse_many(str, fields, types)
-    JSON.parse(str).map do |row|
+    Oj.load(str).map do |row|
       row.values.each_with_object({}).with_index do |(value, values), index|
         values[fields[index]] = api_convert_type(value, types[index])
       end
@@ -349,7 +349,7 @@ class FastAPI
 
   def api_convert_type(val, type, is_array = false)
     if val && is_array
-      JSON.parse(val).map { |inner_value| api_convert_value(inner_value, type) }
+      Oj.load(val).map { |inner_value| api_convert_value(inner_value, type) }
     else
       api_convert_value(val, type)
     end
