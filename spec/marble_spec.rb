@@ -158,4 +158,23 @@ describe Marble do
       expect(ids).to eq ids.sort
     end
   end
+
+  describe 'when locating marbles without an order' do
+    let!(:buckets) { create(:bucket_with_marbles) }
+    let(:response) { ModelHelper.response(Marble, { __order: 'id' }) }
+    let(:marbles)  { response['data'] }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 10, count: 10, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id color radius bucket) } }
+    end
+
+    it 'is returned in the correct order (ASC)' do
+      ids = marbles.map { |m| m['id'] }
+      expect(ids).to eq ids.sort
+    end
+  end
 end
