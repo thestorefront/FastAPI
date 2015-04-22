@@ -10,11 +10,11 @@ describe Person do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets) } }
+      let(:expected) { { attributes: %w(id name gender age buckets dishes) } }
     end
   end
 
-  describe 'when filtering through many people' do
+  describe 'when locating a person using greater than' do
     let!(:people)  { create_list(:person, 15) }
     let(:response) { ModelHelper.response(Person, age__gte: 0) }
 
@@ -23,20 +23,39 @@ describe Person do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets) } }
+      let(:expected) { { attributes: %w(id name gender age buckets dishes) } }
     end
   end
 
-  describe 'when whitelisting person attributes' do
-    let!(:person) { create(:person) }
-    let(:response) { ModelHelper.whitelisted_response(Person, 'created_at') }
+  describe 'when locating a person using less than' do
+    let!(:young_person) { create(:person, name: 'Young Dude', age: 15) }
+    let!(:older_person) { create(:person, name: 'Old Guy', age: 65) }
+
+    let(:response) {ModelHelper.response(Person, age__lt: 20) }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets created_at) } }
+      let(:expected) { { attributes: %w(id name gender age buckets dishes) } }
+    end
+
+    it 'has the correct name' do
+      expect(response['data'].first['name']).to eq 'Young Dude'
+    end
+  end
+
+  describe 'when whitelisting person attributes' do
+    let!(:person) { create(:person) }
+    let(:response) { ModelHelper.response(Person, {}, whitelist: 'created_at') }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id name gender age buckets dishes created_at) } }
     end
   end
 
@@ -50,7 +69,7 @@ describe Person do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets) } }
+      let(:expected) { { attributes: %w(id name gender age buckets dishes) } }
     end
 
     it 'has the correct id' do

@@ -32,5 +32,31 @@ FactoryGirl.define do
                     color: nil, material: 'plastic')
       end
     end
+
+    factory :person_with_buckets_with_quotes_and_spaces do
+      name 'Person with Buckets with quotes and spaces'
+
+      transient do
+        bucket_count 1
+      end
+
+      after(:create) do |person, evaluator|
+        create_list(:bucket, evaluator.bucket_count, person: person,
+                   color: '"abc def"', material: 'paper')
+        create_list(:bucket, evaluator.bucket_count, person: person,
+                   color: '" abcdef"', material: 'paper')
+        create_list(:bucket, evaluator.bucket_count, person: person,
+                   color: '"abcdef "', material: 'paper')
+      end
+    end
+
+    factory :person_with_dishes do
+      name 'Person with Dishes'
+
+      after(:create) do |person|
+        create_list(:burrito, 1, person: person)
+        create_list(:cheeseburger, 1, person: person)
+      end
+    end
   end
 end

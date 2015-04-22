@@ -10,7 +10,33 @@ describe Bucket do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id color material person marbles) } }
+      let(:expected) { { attributes: %w(id color material person marbles used) } }
+    end
+  end
+
+  describe 'when locating a specific bucket using safe filters' do
+    let!(:bucket)  { create(:blue_paper_bucket) }
+    let(:response) { ModelHelper.response(Bucket, { color: 'blue', material: 'paper' }, { safe: true }) }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id color material person marbles used) } }
+    end
+  end
+
+  describe 'when locating a specific bucket using safe filters that are not allowed' do
+    let!(:bucket)  { create(:blue_paper_bucket) }
+    let(:response) { ModelHelper.response(Bucket, { id: 1 }, { safe: true }) }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 0, count: 0, offset: 0, error: /Filter "id" not supported/ } }
+    end
+
+    it 'has an empty data array' do
+      expect(response['data']).to eq []
     end
   end
 
@@ -24,20 +50,20 @@ describe Bucket do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id color material person marbles) } }
+      let(:expected) { { attributes: %w(id color material person marbles used) } }
     end
   end
 
   describe 'when whitelisting bucket attributes' do
-    let!(:bucket) { create(:bucket) }
-    let(:response) { ModelHelper.whitelisted_response(Bucket, 'created_at') }
+    let!(:bucket)  { create(:bucket) }
+    let(:response) { ModelHelper.response(Bucket, {}, whitelist: 'created_at') }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id color material person marbles created_at) } }
+      let(:expected) { { attributes: %w(id color material person marbles used created_at) } }
     end
   end
 
@@ -51,12 +77,48 @@ describe Bucket do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id color material person marbles) } }
+      let(:expected) { { attributes: %w(id color material person marbles used) } }
     end
 
     it 'returns only marbles that match the default filter' do
       max_radius = response['data'].map { |b| b['marbles'].map { |m| m['radius' ] } }.flatten.max
       expect(max_radius <= 10).to be_truthy
+    end
+  end
+
+  describe 'when locating a bucket using a boolean' do
+    let!(:bucket)      { create(:bucket) }
+    let!(:used_bucket) { create(:used_bucket) }
+    let(:response)     { ModelHelper.response(Bucket, used: true) }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id color material person marbles used) } }
+    end
+
+    it 'returns a used bucket' do
+      expect(response['data'].first['used']).to eq true
+    end
+  end
+
+  describe 'when locating a bucket using a boolean string' do
+    let!(:bucket)      { create(:bucket) }
+    let!(:used_bucket) { create(:used_bucket) }
+    let(:response)     { ModelHelper.response(Bucket, used: 't') }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id color material person marbles used) } }
+    end
+
+    it 'returns a used bucket' do
+      expect(response['data'].first['used']).to eq true
     end
   end
 
@@ -70,7 +132,7 @@ describe Bucket do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id color material person marbles) } }
+      let(:expected) { { attributes: %w(id color material person marbles used) } }
     end
 
     it 'has the correct id' do
@@ -100,7 +162,7 @@ describe Bucket do
 
     it_behaves_like 'fastapi_data' do
       let(:expected) { { data: response['data'].first['buckets'].first,
-                         attributes: %w(id color material) } }
+                         attributes: %w(id color material used) } }
     end
   end
 
@@ -114,7 +176,7 @@ describe Bucket do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { data: incomplete_bucket, attributes: %w(id color material) } }
+      let(:expected) { { data: incomplete_bucket, attributes: %w(id color material used) } }
     end
 
     it 'has a nil color' do
@@ -123,6 +185,24 @@ describe Bucket do
 
     it 'has the correct material' do
       expect(incomplete_bucket['material']).to eq 'plastic'
+    end
+  end
+
+  describe 'when locating buckets with quotes and spaces in the color associated with a person' do
+    let!(:person)  { create(:person_with_buckets_with_quotes_and_spaces) }
+    let(:response) { ModelHelper.response(Person) }
+    let(:buckets)  { response['data'].first['buckets'] }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { data: buckets.first, attributes: %w(id color material used) } }
+    end
+
+    it 'it should parse colors correctly' do
+      expect(buckets.map { |b| b['color'] }.sort).to eq ['"abc def"', '" abcdef"', '"abcdef "'].sort
     end
   end
 
