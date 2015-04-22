@@ -6,7 +6,7 @@ FastAPI is a Rails library for querying interdependent datasets quickly and
 returning a human-readable, standard API output.
 
 It works by constructing complex SQL queries that make efficient use of JOINs
-and subqueries based upon model dependencies (namely `belongs_to` and `has_many`).
+and subqueries based upon model dependencies (namely `belongs_to`, `has_one`, and `has_many`).
 
 In only a few lines of code you can decide which fields you wish to expose to
 your endpoint, any filters you wish to run the data through, and create your controller.
@@ -15,12 +15,13 @@ your endpoint, any filters you wish to run the data through, and create your con
 
 You can preview a live example of FastAPI at http://fastapi.herokuapp.com/
 
-The repository is located at [thestorefront/fastapi_example](http://github.com/thestorefront/fastapi_example)
+The repository is located at [thestorefront/fastapi_example](https://github.com/thestorefront/fastapi_example)
 
 
 # Requirements
 
-This gem requires Oj 2.9.9 for JSONification, and Rails (>= 3.2).
+This gem requires Oj >= 2.9.9 for JSONification, ActiveRecord >= 3.2.0,
+and ActiveSupport >= 3.2.0.
 
 FastAPI currently supports PostegreSQL as a data layer.
 
@@ -29,7 +30,7 @@ FastAPI currently supports PostegreSQL as a data layer.
 
 FastAPI is available via RubyGems using:
 
-```
+```bash
 $ gem install fastapi
 ```
 
@@ -137,7 +138,7 @@ end
 Keep in mind that this will only affect the cases where `Person` is a nested
 object.
 
-If we wanted to expose a top-level `Person` api endpoint, we would use
+If we wanted to expose a top-level `Person` API endpoint, we would use
 `fastapi_standard_interface` as well.
 
 Finally, we must modify our `Marble` model in the same way:
@@ -202,7 +203,7 @@ class Api::V1::BucketsController < ApplicationController
 end
 ```
 
-Boom! Run your server with `rails s` and hop your way over to
+Boom! Run your server with `rails server` and hop your way over to
 `http://yourserver[:port]/api/v1/buckets` to see your beautiful list of
 `Buckets` in the FastAPI standard JSON format. :)
 
@@ -214,15 +215,14 @@ Try to filter your datasets as well:
 
 There are many to play with, go nuts!
 
-
 # Documentation
 
 FastAPI has four core components:
 
-1. `ActiveRecord::Base` extension that adds necessary class and instance methods
-2. `class FastAPI` which is instantiated by an  `ActiveRecord::Base` instance
-3. Filters, which provide a way of easily interfacing with your data
-4. FastAPI standard output, a strict way of displaying all FastAPI responses
+1. `ActiveRecord::Base` extension that adds necessary class and instance methods.
+2. `class FastAPI` which is instantiated by an  `ActiveRecord::Base` instance.
+3. Filters, which provide a way of easily interfacing with your data.
+4. FastAPI standard output, a strict way of displaying all FastAPI responses.
 
 ---
 
@@ -353,7 +353,7 @@ resource, you would call `render json: Model.fastapi.reject`.
 ## Filters
 
 Filters are a powerful tool in FastAPI that allow for granular control
-of your API responses. `FastAPIInstance.filter()` accepts them, and they are
+of your API responses. `FastAPIInstance.filter` accepts them, and they are
 also used in `ActiveRecord::Base::fastapi_default_filters`.
 
 Filters work in the following way:
@@ -505,19 +505,20 @@ length-1 Array.
 Thanks for reading! We welcome contributors with good ideas, and we're always
 looking for new talent.
 
-FastAPI was created by [Keith Horwood](http://keithwhor.com/) of
-[Storefront, Inc.](http://thestorefront.com/) in 2014 and is (happily!) MIT
+FastAPI was created by [Keith Horwood](http://keithwhor.com/) and [Trevor Strieber](http://strieber.org) of
+[Storefront, Inc.](https://thestorefront.com/) in 2014 and is (happily!) MIT
 licensed.
 
 
 Twitter:
-[@keithwhor](http://twitter.com/keithwhor),
-[@Storefront](http://twitter.com/storefront)
+[@keithwhor](https://twitter.com/keithwhor),
+[@TrevorStrieber](https://twitter.com/TrevorStrieber),
+[@Storefront](https://twitter.com/storefront)
 
 
 Github:
-[keithwhor](http://github.com/keithwhor),
-[thestorefront](http://github.com/thestorefront)
-
+[keithwhor](https://github.com/keithwhor),
+[TrevorS](https://github.com/TrevorS),
+[thestorefront](https://github.com/thestorefront)
 
 Most recent version of the gem is available at [RubyGems.org: fastapi](https://rubygems.org/gems/fastapi)
