@@ -633,11 +633,11 @@ class FastAPI
       # fields
       if model_data[:type] == :belongs_to
         # joins
-        join_list << %{LEFT JOIN #{model_string_table} AS #{model_string_table_alias}
-                       ON #{model_string_table_alias}.id = #{self_string_table}.#{model_string_field}_id}
+        join_list << "LEFT JOIN #{model_string_table} AS #{model_string_table_alias} " \
+                       "ON #{model_string_table_alias}.id = #{self_string_table}.#{model_string_field}_id"
       elsif model_data[:type] == :has_one
-        join_list << %{LEFT JOIN #{model_string_table} AS #{model_string_table_alias}
-                       ON #{model_string_table_alias}.#{singular_self_table}_id = #{self_string_table}.id}
+        join_list << "LEFT JOIN #{model_string_table} AS #{model_string_table_alias} " \
+                       "ON #{model_string_table_alias}.#{singular_self_table}_id = #{self_string_table}.id"
       end
     end
 
