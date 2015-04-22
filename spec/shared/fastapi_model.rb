@@ -22,4 +22,23 @@ shared_examples 'fastapi_model' do
   it 'responds to fastapi.to_hash' do
     expect(subject.class.fastapi).to respond_to(:to_hash)
   end
+
+  describe 'when calling fastapi.reject' do
+    it 'responds to fastapi.reject' do
+      expect(subject.class.fastapi).to respond_to(:reject)
+    end
+
+    it 'forms the default rejection response' do
+      response = Oj.load(subject.class.fastapi.reject)
+      message  = response['meta']['error']['message']
+      expect(message).to eq 'Access denied'
+    end
+
+    it 'allows specifying the rejection response message' do
+      custom   = "I'm sorry, Dave. I'm afraid I can't do that."
+      response = Oj.load(subject.class.fastapi.reject(custom))
+      message  = response['meta']['error']['message']
+      expect(message).to eq custom
+    end
+  end
 end

@@ -121,7 +121,7 @@ describe Marble do
     end
   end
 
-  describe 'when locating marbles and specifying an order' do
+  describe 'when locating marbles and specifying an order DESC' do
     let!(:buckets) { create(:bucket_with_marbles) }
     let(:response) { ModelHelper.response(Marble, { __order: [:id, :DESC] }) }
     let(:marbles)  { response['data'] }
@@ -137,6 +137,84 @@ describe Marble do
     it 'is returned in the correct order' do
       ids = marbles.map { |m| m['id'] }
       expect(ids).to eq ids.sort.reverse
+    end
+  end
+
+  describe 'when locating marbles and specifying an order ASC' do
+    let!(:buckets) { create(:bucket_with_marbles) }
+    let(:response) { ModelHelper.response(Marble, { __order: [:id, :ASC] }) }
+    let(:marbles)  { response['data'] }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 10, count: 10, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id color radius bucket) } }
+    end
+
+    it 'is returned in the correct order' do
+      ids = marbles.map { |m| m['id'] }
+      expect(ids).to eq ids.sort
+    end
+  end
+
+  describe 'when locating marbles without an order' do
+    let!(:buckets) { create(:bucket_with_marbles) }
+    let(:response) { ModelHelper.response(Marble, { __order: 'id' }) }
+    let(:marbles)  { response['data'] }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 10, count: 10, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id color radius bucket) } }
+    end
+
+    it 'is returned in the correct order (ASC)' do
+      ids = marbles.map { |m| m['id'] }
+      expect(ids).to eq ids.sort
+    end
+  end
+
+  describe 'when locating marbles using offset' do
+    let!(:buckets)    { create(:bucket_with_marbles) }
+    let(:response)    { ModelHelper.response(Marble, { __offset: 5, __order: [:id, :ASC] }) }
+    let(:marbles)     { response['data'] }
+    let(:correct_ids) { Marble.pluck(:id).sort.drop(5) }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 10, count: 5, offset: 5, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id color radius bucket) } }
+    end
+
+    it 'is returned the correct marbles' do
+      ids = marbles.map { |m| m['id'] }
+      expect(ids).to eq correct_ids
+    end
+  end
+
+  describe 'when locating marbles using count' do
+    let!(:buckets)    { create(:bucket_with_marbles) }
+    let(:response)    { ModelHelper.response(Marble, { __count: 5, __order: [:id, :ASC] }) }
+    let(:marbles)     { response['data'] }
+    let(:correct_ids) { Marble.pluck(:id).sort.first(5) }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 10, count: 5, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id color radius bucket) } }
+    end
+
+    it 'is returned the correct marbles' do
+      ids = marbles.map { |m| m['id'] }
+      expect(ids).to eq correct_ids
     end
   end
 end
