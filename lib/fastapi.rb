@@ -213,7 +213,7 @@ class FastAPI
       count_result = ActiveRecord::Base.connection.execute(prepared_data[:count_query])
       result = ActiveRecord::Base.connection.execute(prepared_data[:query])
     rescue
-      error(offset, 'Query failed')
+      return error(offset, 'Query failed')
     end
 
     total_size = count_result.values.size > 0 ? count_result.values[0][0].to_i : 0
