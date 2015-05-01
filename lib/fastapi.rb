@@ -606,7 +606,8 @@ class FastAPI
 
     # Base fields
     field_list = fields.each_with_object([]) do |field, list|
-      if @model.columns_hash[field.to_s].array
+      column = @model.columns_hash[field.to_s]
+      if column.respond_to?('array') && column.array
         list << "ARRAY_TO_JSON(#{self_string_table}.#{field}) AS #{field}"
       else
         list << "#{self_string_table}.#{field} AS #{field}"
@@ -623,7 +624,8 @@ class FastAPI
       singular_self_table = self_string_table.singularize
 
       model_data[:model].fastapi_fields_sub.each do |field|
-        if model_data[:model].columns_hash[field.to_s].array
+        column = model_data[:model].columns_hash[field.to_s]
+        if column.respond_to?('array') && column.array
           field_list << "ARRAY_TO_JSON(#{model_string_table_alias}.#{field}) AS #{model_string_field}__#{field}"
         else
           field_list << "#{model_string_table_alias}.#{field} AS #{model_string_field}__#{field}"
