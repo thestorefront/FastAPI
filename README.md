@@ -383,21 +383,35 @@ Model.fastapi.filter({
 It's that easy. The double underscore indicates you're using a filter
 comparator, and `gte` stands for *g*reater *t*han or *e*qual to.
 
-The available comparators are:
+The available comparators are as follows:
+(Descriptions marked with * indicate scalar inputs will be converted to arrays)
 
 ```
-'is'          # == (Equal to)
-'not'         # != (Not equal to)
-'gt'          # > (Greater than)
-'gte'         # >= (Greater than or equal to)
-'lt'          # < (Less than)
-'lte'         # <= (Less than or equal to)
-'in'          # in (Array or String)
-'not_in'      # not in (Array or String)
-'contains'    # contains (Case sensitive)
-'icontains'   # contains (Case insensitive)
-'is_null'     # is null value
-'not_null'    # is not null value
+Scalar Fields
+
+'is'              # Field == Value
+'not'             # Field != Value
+'gt'              # Field > Value
+'gte'             # Field >= Value
+'lt'              # Field < Value
+'lte'             # Field <= Value
+'like'            # Field contains Value (string)
+'not_like'        # Field does not contain Value (string)
+'ilike'           # Field contains Value (case ins.)
+'not_ilike'       # Field does not contain Value (case ins.)
+'null'            # Field is NULL
+'not_null'        # Field is not NULL
+'in'              # * Field is in Value
+'not_in'          # * Field is not in Value
+
+Array Fields
+
+'subset'          # * Field is a subset of Value
+'not_subset'      # * Field is not a subset of Value
+'contains'        # * Value is a subset of Field
+'not_contains'    # * Value is not a subset of Field
+'intersects'      # * Field and Value have shared elements
+'not_intersects'  # * Field and Value have no shared elements
 ```
 
 If your key contains a double underscore, make sure to use the `__is` comparator

@@ -48,7 +48,7 @@ describe Beverage do
   describe 'when locating a beverage using string contains' do
     let!(:water)   { create(:water) }
     let!(:coke)    { create(:coke) }
-    let(:response) { ModelHelper.response(Beverage, name__contains: 'wat') }
+    let(:response) { ModelHelper.response(Beverage, name__like: 'wat') }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
@@ -66,7 +66,7 @@ describe Beverage do
   describe 'when locating a beverage using case insensitive string contains' do
     let!(:water)   { create(:water) }
     let!(:coke)    { create(:coke) }
-    let(:response) { ModelHelper.response(Beverage, name__icontains: 'CoCa') }
+    let(:response) { ModelHelper.response(Beverage, name__ilike: 'CoCa') }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
@@ -116,7 +116,7 @@ describe Beverage do
   describe 'when locating a beverage using not in' do
     let!(:water)   { create(:water) }
     let!(:coke)    { create(:coke) }
-    let(:response) { ModelHelper.response(Beverage, flavors__not_in: ['lime']) }
+    let(:response) { ModelHelper.response(Beverage, flavors__not_contains: ['lime']) }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }

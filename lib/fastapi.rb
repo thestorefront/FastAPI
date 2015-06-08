@@ -255,6 +255,8 @@ module FastAPI
       self_obj = model ? model : @model
       self_string_table = model ? "__#{model.to_s.tableize}" : @model.to_s.tableize
 
+      filters = filters.with_indifferent_access
+
       # if we're at the top level...
       if model.nil?
 
@@ -263,19 +265,21 @@ module FastAPI
             found_index = key.to_s.rindex('__')
             key_root = found_index ? key.to_s[0..found_index].to_sym : key
 
-            if [:__order, :__offset, :__count].exclude?(key) && self_obj.fastapi_filters_whitelist.exclude?(key_root)
+            if [:__order, :__offset, :__count, :__params].exclude?(key) && self_obj.fastapi_filters_whitelist.exclude?(key_root)
               fail %(Filter "#{key}" not supported.)
             end
           end
         end
 
-        filters = @model.fastapi_filters.clone.merge(filters)
+        filters = @model.fastapi_filters.clone.merge(filters).with_indifferent_access
+
       end
 
-      params = filters.has_key?(:__params) ? [*filters.delete(:__params)] : []
-      filters[:__order] ||= [:created_at, :DESC]
+      params = filters.has_key?(:__params) ? filters.delete(:__params) : []
 
       filters.each do |key, value|
+
+        key = key.to_sym
 
         next if [:__order, :__offset, :__count, :__params].include?(key)
 
@@ -371,15 +375,8 @@ module FastAPI
         elsif self_obj.column_names.include?(field)
 
           base_field   = "#{self_string_table}.#{field}"
-          field_string = base_field
-          is_array     = false
+          filter_array << Comparison.new(comparator, data, base_field, self_obj.columns_hash[field].type)
 
-          if self_obj.columns_hash[field].respond_to?('array') && self_obj.columns_hash[field].array
-            field_string = "ANY(#{field_string})"
-            is_array = true
-          end
-
-          filter_array << Comparison.new(comparator, data, base_field, self_obj.columns_hash[field].type, is_array)
         end
       end
 

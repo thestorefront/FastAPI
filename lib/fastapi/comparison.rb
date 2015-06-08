@@ -11,20 +11,23 @@ module FastAPI
       gte: '__FIELD__ >= __VALUE__',
       lt:  '__FIELD__ < __VALUE__',
       lte: '__FIELD__ <= __VALUE__',
-      contains:   "__FIELD__ LIKE '%' || __VALUE__ || '%'",
-      contains_a: '__VALUE_ = ANY(__FIELD__)',
-      icontains:  "__FIELD__ ILIKE '%' || __VALUE__ || '%'",
-      is_null:    '__FIELD__ IS NULL',
+      like:   '__FIELD__ LIKE \'%\' || __VALUE__ || \'%\'',
+      ilike:  '__FIELD__ ILIKE \'%\' || __VALUE__ || \'%\'',
+      not_like:   'NOT (__FIELD__ LIKE \'%\' || __VALUE__ || \'%\')',
+      not_ilike:  'NOT (__FIELD__ ILIKE \'%\' || __VALUE__ || \'%\')',
+      null:    '__FIELD__ IS NULL',
       not_null:   '__FIELD__ IS NOT NULL'
     }.with_indifferent_access
 
     @@multi_input = {
-      in:   '__FIELD__ IN (__VALUES__)',
-      in_a: '__FIELD__ @> ARRAY[__VALUES__]',
-      not_in:   '__FIELD__ NOT IN (__VALUES__)',
-      not_in_a: 'NOT __FIELD__ @> ARRAY[__VALUES__]',
-      intersects_a:     '__FIELD__ && ARRAY[__VALUES__]',
-      not_intersects_a: 'NOT __FIELD__ && ARRAY[__VALUES__]'
+      in: '__FIELD__ IN (__VALUES__)',
+      not_in: '__FIELD__ NOT IN (__VALUES__)',
+      subset: '__FIELD__ <@ ARRAY[__VALUES__]::__TYPE__[]',
+      not_subset: 'NOT __FIELD__ <@ ARRAY[__VALUES__]::__TYPE__[]',
+      contains: '__FIELD__ @> ARRAY[__VALUES__]::__TYPE__[]',
+      not_contains: 'NOT __FIELD__ @> ARRAY[__VALUES__]::__TYPE__[]',
+      intersects:     '__FIELD__ && ARRAY[__VALUES__]::__TYPE__[]',
+      not_intersects: 'NOT __FIELD__ && ARRAY[__VALUES__]::__TYPE__[]'
     }.with_indifferent_access
 
     @@booleans = {
@@ -34,42 +37,42 @@ module FastAPI
       false: false
     }.with_indifferent_access
 
-    @@types = Hash.new('::text').merge({
-      boolean: '::boolean',
-      integer: '::integer',
-      float:   '::float',
-      string:  '::varchar[]'
+    @@types = Hash.new('text').merge({
+      boolean: 'boolean',
+      integer: 'integer',
+      float:   'float',
+      string:  'varchar'
     }).with_indifferent_access
 
     def self.valid_comparator?(comparator)
-      [comparator, "#{comparator}_a"].any? do |c|
-        @@scalar_input.key?(c) || @@multi_input.key?(c)
-      end
+      @@scalar_input.key?(comparator) || @@multi_input.key?(comparator)
     end
 
     def self.invalid_comparator?(comparator)
       !valid_comparator?(comparator)
     end
 
-    def initialize(comparator, value, field, type, is_array)
-      key = prepare_comparator(comparator, value, is_array)
+    def initialize(comparator, value, field, type)
+      key = prepare_comparator(comparator, value)
       val = prepare_value(value, type)
       if clause = @@scalar_input[key]
         @sql = scalar_sql(clause, field, val)
       elsif clause = @@multi_input[key]
-        @sql = multi_sql(clause, val, field, type, is_array)
+        @sql = multi_sql(clause, val, field, type)
       else
         raise ArgumentError.new("Invalid comparator: #{key}")
       end
     end
 
     private
-    def prepare_comparator(comparator, value, is_array)
-      if value.nil?
-        comparator == 'not_null' ? comparator : :is_null
-      else
-        is_array ? "#{comparator}_a" : comparator
+    def prepare_comparator(comparator, value)
+
+      if value.nil? and comparator == 'is'
+        comparator = :null
       end
+
+      return comparator
+
     end
 
     def prepare_value(value, type)
@@ -80,9 +83,9 @@ module FastAPI
       clause.sub('__FIELD__', field).sub('__VALUE__', ActiveRecord::Base.connection.quote(value))
     end
 
-    def multi_sql(clause, value, field, type, is_array)
-      values = value.map { |v| ActiveRecord::Base.connection.quote(v) }.join(',')
-      [clause.sub('__FIELD__', field).sub('__VALUES__', values), (is_array ? @@types[type] : nil)].compact.join
+    def multi_sql(clause, value, field, type)
+      values = [*value].map { |v| ActiveRecord::Base.connection.quote(v) }.join(',')
+      [clause.sub('__FIELD__', field).sub('__VALUES__', values).sub('__TYPE__', @@types[type])].compact.join
     end
   end
 end
