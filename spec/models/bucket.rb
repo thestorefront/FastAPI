@@ -1,4 +1,5 @@
 class Bucket < ActiveRecord::Base
+  
   belongs_to :person
   has_many :marbles
 
@@ -7,4 +8,5 @@ class Bucket < ActiveRecord::Base
   fastapi_standard_interface_nested [:id, :color, :material, :used]
 
   fastapi_default_filters(marbles: { radius__lte: 10 })
+
 end

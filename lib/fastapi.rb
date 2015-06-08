@@ -269,7 +269,7 @@ module FastAPI
             if [:__order, :__offset, :__count, :__params].exclude?(key) && self_obj.fastapi_filters_whitelist.exclude?(key_root)
               fail %(Filter "#{key}" not supported.)
             end
-            
+
           end
         end
 
@@ -295,6 +295,7 @@ module FastAPI
             fail %(Filter "#{key}" not supported)
           end
         end
+
       end
 
       filter_array = []
@@ -350,6 +351,8 @@ module FastAPI
       end
 
       filters.each do |key, data|
+
+        key = key.to_sym
         field = key.to_s
 
         if field.rindex('__').nil?
