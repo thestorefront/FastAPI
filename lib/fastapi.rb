@@ -262,12 +262,14 @@ module FastAPI
 
         if safe
           filters.each do |key, value|
+
             found_index = key.to_s.rindex('__')
-            key_root = found_index ? key.to_s[0..found_index].to_sym : key
+            key_root = (found_index ? key.to_s[0..found_index] : key).to_sym
 
             if [:__order, :__offset, :__count, :__params].exclude?(key) && self_obj.fastapi_filters_whitelist.exclude?(key_root)
               fail %(Filter "#{key}" not supported.)
             end
+            
           end
         end
 

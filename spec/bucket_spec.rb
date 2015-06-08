@@ -81,7 +81,7 @@ describe Bucket do
     end
 
     it 'returns only marbles that match the default filter' do
-      max_radius = response['data'].map { |b| b['marbles'].map { |m| m['radius' ] } }.flatten.max
+      max_radius = response['data'].map { |b| b['marbles'].map { |m| m['radius'] } }.flatten.max
       expect(max_radius <= 10).to be_truthy
     end
   end
