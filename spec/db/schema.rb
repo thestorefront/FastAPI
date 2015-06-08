@@ -36,7 +36,7 @@ ActiveRecord::Schema.define(version: 20150330000000) do
     t.timestamps null: false
   end
 
-  add_index 'dishes', ['ingredients'], name: 'index_dishes_on_ingredients', using: :btree
+  add_index 'dishes', ['ingredients'], name: 'index_dishes_on_ingredients', using: :gin
   add_index 'dishes', ['person_id'], name: 'index_dishes_on_person_id', using: :btree
 
   create_table 'beverages', force: true do |t|
@@ -47,5 +47,6 @@ ActiveRecord::Schema.define(version: 20150330000000) do
     t.timestamps null: false
   end
 
+  add_index 'beverages', ['flavors'], name: 'index_beverages_on_flavors', using: :gin
   add_index 'beverages', ['dish_id'], name: 'index_beverages_on_dish_id', using: :btree
 end
