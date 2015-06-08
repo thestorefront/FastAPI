@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.description   = 'Easily create robust, standardized API endpoints using lightning-fast database queries'
   s.authors       = ['Keith Horwood', 'Trevor Strieber']
   s.email         = ['keithwhor@gmail.com', 'trevor@strieber.org']
-  s.files         = ['lib/fastapi.rb', 'lib/fastapi/active_record_extension.rb']
+  s.files         = Dir['lib/**/*']
   s.homepage      = 'https://github.com/thestorefront/FastAPI'
   s.license       = 'MIT'
 
