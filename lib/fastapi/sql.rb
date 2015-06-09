@@ -81,7 +81,7 @@ module FastAPI
 
     def generate_field_list(klazz, fields, table)
       fields.each_with_object([]) do |field, list|
-        if klazz.columns_hash[field.to_s].array
+        if klazz.columns_hash[field.to_s].respond_to?(:array) && klazz.columns_hash[field.to_s].array
           list << "ARRAY_TO_JSON(#{table}.#{field}) AS #{field}"
         else
           list << "#{table}.#{field} AS #{field}"
@@ -99,7 +99,7 @@ module FastAPI
         singular_table_name = model_table_name.singularize
 
         model_data[:model].fastapi_fields_sub.each do |field|
-          if model_data[:model].columns_hash[field.to_s].array
+          if model_data[:model].columns_hash[field.to_s].respond_to?(:array) && model_data[:model].columns_hash[field.to_s].array
             field_list << "ARRAY_TO_JSON(#{table_alias}.#{field}) AS #{field_name}__#{field}"
           else
             field_list << "#{table_alias}.#{field} AS #{field_name}__#{field}"
