@@ -69,7 +69,7 @@ module FastAPI
       filter({ id: id }, meta)
 
       if @metadata[:total].zero?
-        @metadata[:error] = { message: "#{@model} id does not exist" }
+        @metadata[:error] = { message: "#{@model} with id: #{id} does not exist" }
       end
 
       self

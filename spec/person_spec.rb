@@ -81,7 +81,7 @@ describe Person do
     let(:response) { ModelHelper.fetch(Person, 100) }
 
     it_behaves_like 'fastapi_meta' do
-      let(:expected) { { total: 0, count: 0, offset: 0, error: /[\w]+ id does not exist/ } }
+      let(:expected) { { total: 0, count: 0, offset: 0, error: /\w+ with id: \d+ does not exist/ } }
     end
 
     it 'has an empty data array' do
