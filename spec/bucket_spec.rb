@@ -68,8 +68,8 @@ describe Bucket do
   end
 
   describe 'when filtering through many buckets using a default filter on nested marbles' do
-    let!(:buckets_5)  { create_list(:bucket_with_marbles, 5, marble_radius: 5) }
-    let!(:buckets_15) { create_list(:bucket_with_marbles, 5, marble_radius: 15) }
+    let!(:buckets_5)  { create_list(:bucket_with_marbles, 5, marble_count: 5, marble_radius: 5) }
+    let!(:buckets_15) { create_list(:bucket_with_marbles, 5, marble_count: 5, marble_radius: 15) }
     let(:response)    { ModelHelper.response(Bucket) }
 
     it_behaves_like 'fastapi_meta' do
@@ -81,7 +81,7 @@ describe Bucket do
     end
 
     it 'returns only marbles that match the default filter' do
-      max_radius = response['data'].map { |b| b['marbles'].map { |m| m['radius' ] } }.flatten.max
+      max_radius = response['data'].map { |b| b['marbles'].map { |m| m['radius'] } }.flatten.max
       expect(max_radius <= 10).to be_truthy
     end
   end

@@ -75,6 +75,7 @@ module FastAPI
         elsif klazz.column_names.include?(field.to_s)
           results[:fields] << field
         end
+
       end
     end
 
@@ -128,17 +129,19 @@ module FastAPI
         end
 
         if filters[:has_many].has_key?(model_symbol)
-          if filters[:has_many][model_symbol].count > 0
+
+          if not filters[:has_many][model_symbol].blank?
             has_many_filters = "AND #{filters[:has_many][model_symbol].join(' AND ')}"
           else
             has_many_filters = nil
           end
 
-          if filters[:has_many_order][model_symbol]
+          if not filters[:has_many_order][model_symbol].blank?
             has_many_order = "ORDER BY #{filters[:has_many_order][model_symbol]}"
           else
-            has_many_filters = nil
+            has_many_order = nil
           end
+
         end
 
         field_list << [
@@ -152,6 +155,7 @@ module FastAPI
           has_many_order,
           ")) AS __many__#{model_string_table}"
         ].compact.join(' ')
+
       end
     end
 
