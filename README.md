@@ -1,4 +1,4 @@
-# FastAPI [![Gem Version](https://badge.fury.io/rb/fastapi.svg)](http://badge.fury.io/rb/fastapi) [![Build Status](https://travis-ci.org/thestorefront/FastAPI.svg?branch=master)](https://travis-ci.org/thestorefront/FastAPI) 
+# FastAPI [![Gem Version](https://badge.fury.io/rb/fastapi.svg)](http://badge.fury.io/rb/fastapi) [![Build Status](https://travis-ci.org/thestorefront/FastAPI.svg?branch=master)](https://travis-ci.org/thestorefront/FastAPI)
 
 Easily create robust, standardized API endpoints using lightning-fast database queries
 
@@ -259,9 +259,6 @@ filters.
 Sets safe fields for `FastAPIInstance.safe_filter`. These safe fields are a
 *whitelist* for filters, meaning safe_filter will only allow filtering by these
 fields.
-
-
-### InstanceMethods
 
 #### fastapi
 `fastapi`
