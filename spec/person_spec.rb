@@ -10,7 +10,7 @@ describe Person do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets dishes) } }
+      let(:expected) { { attributes: %w(id name gender age buckets dishes pets) } }
     end
   end
 
@@ -23,7 +23,7 @@ describe Person do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets dishes) } }
+      let(:expected) { { attributes: %w(id name gender age buckets dishes pets) } }
     end
   end
 
@@ -38,7 +38,7 @@ describe Person do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets dishes) } }
+      let(:expected) { { attributes: %w(id name gender age buckets dishes pets) } }
     end
 
     it 'has the correct name' do
@@ -55,7 +55,7 @@ describe Person do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets dishes created_at) } }
+      let(:expected) { { attributes: %w(id name gender age buckets dishes created_at pets) } }
     end
   end
 
@@ -69,7 +69,7 @@ describe Person do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets dishes) } }
+      let(:expected) { { attributes: %w(id name gender age buckets dishes pets) } }
     end
 
     it 'has the correct id' do
@@ -100,6 +100,20 @@ describe Person do
 
     it_behaves_like 'fastapi_data' do
       let(:expected) { { data: person_from_bucket, attributes: %w(id name gender age) } }
+    end
+  end
+
+  describe 'when locating an owner (person) associated with a pet' do
+    let!(:person)         { create(:person_with_pets) }
+    let(:response)        { ModelHelper.response(Pet) }
+    let(:person_from_pet) { response['data'].first['owner'] }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 5, count: 5, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { data: person_from_pet, attributes: %w(id name gender age) } }
     end
   end
 end
