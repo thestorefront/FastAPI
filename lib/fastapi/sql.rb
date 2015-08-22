@@ -11,7 +11,7 @@ module FastAPI
       results = filter_fields(klazz, whitelist)
       models, belongs, has_many, fields = results.values_at(:models, :belongs, :has_many, :fields)
 
-      primary_key = klazz.table_name
+      primary_key = klazz.primary_key
       table_name  = klazz.table_name
 
       # Base fields
