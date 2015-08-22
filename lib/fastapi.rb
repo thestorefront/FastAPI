@@ -66,10 +66,12 @@ module FastAPI
     # @param meta [Hash] a hash containing custom metadata
     # @return [FastAPI] the current instance
     def fetch(id, meta = {})
-      filter({ id: id }, meta)
+      id_column_name = @model.primary_key.to_sym
+
+      filter({ id_column_name => id }, meta)
 
       if @metadata[:total].zero?
-        @metadata[:error] = { message: "#{@model} with id: #{id} does not exist" }
+        @metadata[:error] = { message: "#{@model} with #{id_column_name}: #{id} does not exist" }
       end
 
       self
@@ -253,7 +255,7 @@ module FastAPI
 
     def parse_filters(filters, safe = false, model = nil)
       self_obj = model ? model : @model
-      self_string_table = model ? "__#{model.to_s.tableize}" : @model.to_s.tableize
+      self_string_table = model ? "__#{model.table_name}" : @model.table_name
 
       filters = filters.with_indifferent_access
 
