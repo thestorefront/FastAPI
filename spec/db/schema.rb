@@ -49,4 +49,15 @@ ActiveRecord::Schema.define(version: 20150330000000) do
 
   add_index 'beverages', ['flavors'], name: 'index_beverages_on_flavors', using: :gin
   add_index 'beverages', ['dish_id'], name: 'index_beverages_on_dish_id', using: :btree
+
+  create_table 'peoples_pets', id: false, force: true do |t|
+    t.primary_key 'peoples_pets_id'
+    t.string 'name'
+    t.string 'color'
+    t.integer 'owner_id'
+
+    t.timestamps null: false
+  end
+
+  add_index 'peoples_pets', ['owner_id'], name: 'index_peoples_pets_on_owner_id', using: :btree
 end
