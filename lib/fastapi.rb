@@ -8,7 +8,6 @@ require 'fastapi/sql'
 require 'fastapi/utilities'
 
 module FastAPI
-
   Oj.default_options = { mode: :compat }
 
   class Wrapper
@@ -116,7 +115,7 @@ module FastAPI
     #
     # @return [String] JSON data and metadata
     def response
-      Oj.dump(self.to_hash)
+      Oj.dump(to_hash)
     end
 
     # Spoofs data from Model
@@ -127,7 +126,7 @@ module FastAPI
       meta[:count]  ||= data.count
       meta[:offset] ||= 0
 
-      Oj.dump({ meta: meta, data: data })
+      Oj.dump(meta: meta, data: data)
     end
 
     # Returns a JSONified string representing a rejected API response with invalid fields parameters
@@ -135,7 +134,7 @@ module FastAPI
     # @param fields [Hash] Hash containing fields and their related errors
     # @return [String] JSON data and metadata, with error
     def invalid(fields)
-      Oj.dump({
+      Oj.dump(
         meta: {
           total: 0,
           offset: 0,
@@ -146,7 +145,7 @@ module FastAPI
           }
         },
         data: []
-      })
+      )
     end
 
     # Returns a JSONified string representing a standardized empty API response, with a provided error message
@@ -154,7 +153,7 @@ module FastAPI
     # @param message [String] Error message to be used in response
     # @return [String] JSON data and metadata, with error
     def reject(message = 'Access denied')
-      Oj.dump({
+      Oj.dump(
         meta: {
           total: 0,
           offset: 0,
@@ -164,10 +163,11 @@ module FastAPI
           }
         },
         data: []
-      })
+      )
     end
 
     private
+
     def error(offset, message)
       { data: [], total: 0, count: 0, offset: offset, error: { message: message } }
     end
@@ -261,9 +261,8 @@ module FastAPI
 
       # if we're at the top level...
       if model.nil?
-
         if safe
-          filters.each do |key, value|
+          filters.keys.each do |key|
 
             found_index = key.to_s.rindex('__')
             key_root = (found_index ? key.to_s[0..found_index] : key).to_sym
@@ -276,13 +275,11 @@ module FastAPI
         end
 
         filters = @model.fastapi_filters.clone.merge(filters).with_indifferent_access
-
       end
 
-      params = filters.has_key?(:__params) ? filters.delete(:__params) : []
+      params = filters.key?(:__params) ? filters.delete(:__params) : []
 
-      filters.each do |key, value|
-
+      filters.keys.each do |key|
         key = key.to_sym
 
         next if [:__order, :__offset, :__count, :__params].include?(key)
@@ -290,14 +287,13 @@ module FastAPI
         found_index = key.to_s.rindex('__')
         key_root = found_index.nil? ? key : key.to_s[0...found_index].to_sym
 
-        if !self_obj.column_names.include?(key_root.to_s)
-          if !model.nil? || !(@model.reflect_on_all_associations(:has_many).map(&:name).include?(key_root)   ||
+        unless self_obj.column_names.include?(key_root.to_s)
+          if !model.nil? || !(@model.reflect_on_all_associations(:has_many).map(&:name).include?(key_root) ||
               @model.reflect_on_all_associations(:belongs_to).map(&:name).include?(key_root) ||
               @model.reflect_on_all_associations(:has_one).map(&:name).include?(key_root))
             fail %(Filter "#{key}" not supported)
           end
         end
-
       end
 
       filter_array = []
@@ -309,7 +305,7 @@ module FastAPI
       order_belongs_to = {}
 
       # get the order first
-      if filters.has_key?(:__order)
+      if filters.key?(:__order)
 
         order = filters.delete(:__order)
 
@@ -327,9 +323,9 @@ module FastAPI
           order = ['', '']
         end
 
-        order[1] = 'ASC' if ['ASC', 'DESC'].exclude?(order[1])
+        order[1] = 'ASC' if %w(ASC DESC).exclude?(order[1])
 
-        if model.nil? && @model.fastapi_custom_order.has_key?(order[0].to_sym)
+        if model.nil? && @model.fastapi_custom_order.key?(order[0].to_sym)
 
           order[0] = @model.fastapi_custom_order[order[0].to_sym].gsub('self.', "#{self_string_table}.")
 
@@ -395,7 +391,6 @@ module FastAPI
         belongs_to: filter_belongs_to,
         belongs_to_order: order_belongs_to
       }
-
     end
   end
 end

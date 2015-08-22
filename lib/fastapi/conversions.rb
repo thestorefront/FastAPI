@@ -1,6 +1,5 @@
 module FastAPI
   module Conversions
-
     def self.convert_type(val, type, field = nil)
       if val && is_array(field)
         Oj.load(val).map { |inner_value| convert_value(inner_value, type) }
@@ -10,6 +9,7 @@ module FastAPI
     end
 
     private
+
     def self.is_array(field)
       field && field.respond_to?('array') && field.array
     end

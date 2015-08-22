@@ -45,12 +45,12 @@ module FastAPI
     end
 
     private
+
     def filter_fields(klazz, whitelist)
       skeleton = { models: {}, belongs: [], has_many: [], fields: [] }
       (klazz.fastapi_fields + whitelist).each_with_object(skeleton) do |field, results|
 
         if klazz.reflect_on_all_associations(:belongs_to).map(&:name).include?(field)
-
           association = klazz.reflect_on_association(field)
           model       = association.klass
 
@@ -61,7 +61,6 @@ module FastAPI
           }
 
         elsif klazz.reflect_on_all_associations(:has_one).map(&:name).include?(field)
-
           association = klazz.reflect_on_association(field)
           model       = association.klass
 
@@ -72,7 +71,6 @@ module FastAPI
           }
 
         elsif klazz.reflect_on_all_associations(:has_many).map(&:name).include?(field)
-
           association = klazz.reflect_on_association(field)
           model       = association.klass
 
@@ -152,7 +150,7 @@ module FastAPI
           m_fields << "__#{association_name}.#{field}"
         end
 
-        if filters[:has_many].has_key?(model_symbol)
+        if filters[:has_many].key?(model_symbol)
 
           if filters[:has_many][model_symbol].present?
             has_many_filters = "AND #{filters[:has_many][model_symbol].join(' AND ')}"
