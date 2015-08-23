@@ -116,4 +116,21 @@ describe Person do
       let(:expected) { { data: person_from_pet, attributes: %w(id name gender age) } }
     end
   end
+
+  describe 'when overriding meta' do
+    let!(:people)  { create_list(:person, 5) }
+    let(:response) { ModelHelper.response(Person, {}, meta: { total: 1, offset: 1, count: 1}) }
+
+    it 'has the correct actual count' do
+      expect(Person.count).to eq 5
+    end
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 1, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id name gender age buckets dishes pets) } }
+    end
+  end
 end

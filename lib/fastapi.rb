@@ -40,10 +40,10 @@ module FastAPI
     # @param meta [Hash] a hash containing custom metadata
     # @return [FastAPI] the current instance
     def filter(filters = {}, meta = {}, safe = false)
-      result = fastapi_query(filters, safe)
+      results = fastapi_query(filters, safe)
 
-      @metadata = meta.merge(result.slice(:total, :offset, :count, :error))
-      @data     = result[:data]
+      @metadata = results.slice(:total, :offset, :count, :error).merge(meta)
+      @data     = results[:data]
 
       self
     end
