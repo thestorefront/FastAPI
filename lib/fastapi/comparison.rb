@@ -67,10 +67,10 @@ module FastAPI
 
     def prepare_comparator(comparator, value)
       if value.nil? && comparator == 'is'
-        comparator = :null
+        :null
+      else
+        comparator
       end
-
-      comparator
     end
 
     def prepare_value(value, type)

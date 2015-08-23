@@ -11,9 +11,6 @@ module FastAPI
       results = filter_fields(klazz, whitelist)
       models, belongs, has_many, fields = results.values_at(:models, :belongs, :has_many, :fields)
 
-      primary_key = klazz.primary_key
-      table_name  = klazz.table_name
-
       # Base fields
       field_list = generate_field_list(klazz, fields)
 
@@ -25,6 +22,9 @@ module FastAPI
 
       filter_string = filters[:main].size > 0 ? "WHERE #{filters[:main].join(' AND ')}" : nil
       order_string  = filters[:main_order] ? "ORDER BY #{filters[:main_order]}" : nil
+
+      primary_key = klazz.primary_key
+      table_name  = klazz.table_name
 
       @sql = {
         query: [
@@ -50,35 +50,21 @@ module FastAPI
       skeleton = { models: {}, belongs: [], has_many: [], fields: [] }
       (klazz.fastapi_fields + whitelist).each_with_object(skeleton) do |field, results|
 
-        if klazz.reflect_on_all_associations(:belongs_to).map(&:name).include?(field)
-          association = klazz.reflect_on_association(field)
-          model       = association.klass
+        association = klazz.reflect_on_association(field)
 
+        if association.present?
+          model = association.klass
           results[:models][association.name] = model
+        end
 
-          results[:belongs] << {
-            model: model, association: association, type: :belongs_to
-          }
+        if association.is_a?(ActiveRecord::Reflection::BelongsToReflection)
+          results[:belongs] << { model: model, association: association, type: :belongs_to }
 
-        elsif klazz.reflect_on_all_associations(:has_one).map(&:name).include?(field)
-          association = klazz.reflect_on_association(field)
-          model       = association.klass
+        elsif association.is_a?(ActiveRecord::Reflection::HasOneReflection)
+          results[:belongs] << { model: model, association: association, type: :has_one }
 
-          results[:models][association.name] = model
-
-          results[:belongs] << {
-            model: model, association: association, type: :has_one
-          }
-
-        elsif klazz.reflect_on_all_associations(:has_many).map(&:name).include?(field)
-          association = klazz.reflect_on_association(field)
-          model       = association.klass
-
-          results[:models][association.name] = model
-
-          results[:has_many] << {
-            model: model, association: association, type: :has_many
-          }
+        elsif association.is_a?(ActiveRecord::Reflection::HasManyReflection)
+          results[:has_many] << { model: model, association: association, type: :has_many }
 
         elsif klazz.column_names.include?(field.to_s)
           results[:fields] << field
