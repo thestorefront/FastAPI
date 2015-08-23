@@ -4,12 +4,12 @@ FactoryGirl.define do
 
     factory :margarita_pizza do
       name 'margarita pizza'
-      ingredients ['dough', 'marinara', 'mozarella', 'basil']
+      ingredients %w(dough marinara mozarella basil)
     end
 
     factory :cheeseburger do
       name 'cheeseburger'
-      ingredients ['wheat bun', 'ground beef', 'american cheese', 'pickle', 'lettuce', 'onion', 'ketchup']
+      ingredients %w(wheat bun ground beef american\ cheese pickle lettuce onion ketchup)
 
       factory :cheeseburger_with_beer do
         association :beverage, factory: :beer
@@ -18,7 +18,7 @@ FactoryGirl.define do
 
     factory :burrito do
       name 'burrito'
-      ingredients ['flour tortilla', 'shredded chicken', 'queso fresco', 'black beans', 'avocado']
+      ingredients %w(flour\ tortilla shredded\ chicken queso\ fresco black\ beans avocado)
 
       factory :burrito_with_coke do
         association :beverage, factory: :coke

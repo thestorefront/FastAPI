@@ -6,7 +6,7 @@ module FastAPI
 
     def_delegator :@sql, :[]
 
-    def initialize(filters, offset, count, klazz, whitelist, safe = false)
+    def initialize(filters, offset, count, klazz, whitelist)
 
       results = filter_fields(klazz, whitelist)
       models, belongs, has_many, fields = results.values_at(:models, :belongs, :has_many, :fields)

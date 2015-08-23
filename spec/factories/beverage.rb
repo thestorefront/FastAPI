@@ -4,17 +4,17 @@ FactoryGirl.define do
 
     factory :water do
       name 'water'
-      flavors ['water']
+      flavors %w(water)
     end
 
     factory :coke do
       name 'Coca-Cola'
-      flavors ['sweet', 'vanilla', 'cinnamon', 'orange', 'lime', 'lemon', 'nutmeg']
+      flavors %w(sweet vanilla cinnamon orange lime lemon nutmeg)
     end
 
     factory :beer do
       name 'Hell Or High Watermelon'
-      flavors ['sweet', 'watermelon', 'wheat', 'yeast']
+      flavors %w(sweet watermelon wheat yeast)
     end
   end
 end

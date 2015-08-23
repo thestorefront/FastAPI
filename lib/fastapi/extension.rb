@@ -48,15 +48,15 @@ module Extension
     end
 
     def fastapi_fields
-      @fastapi_fields || [self.primary_key.to_sym]
+      @fastapi_fields || [primary_key.to_sym]
     end
 
     def fastapi_fields_sub
-      @fastapi_fields_sub || [self.primary_key.to_sym]
+      @fastapi_fields_sub || [primary_key.to_sym]
     end
 
     def fastapi_filters_whitelist
-      @fastapi_filters_whitelist || @fastapi_fields || [self.primary_key.to_sym]
+      @fastapi_filters_whitelist || @fastapi_fields || [primary_key.to_sym]
     end
 
     def fastapi_filters

@@ -31,7 +31,7 @@ describe Person do
     let!(:young_person) { create(:person, name: 'Young Dude', age: 15) }
     let!(:older_person) { create(:person, name: 'Old Guy', age: 65) }
 
-    let(:response) {ModelHelper.response(Person, age__lt: 20) }
+    let(:response) { ModelHelper.response(Person, age__lt: 20) }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
@@ -47,7 +47,7 @@ describe Person do
   end
 
   describe 'when whitelisting person attributes' do
-    let!(:person) { create(:person) }
+    let!(:person)  { create(:person) }
     let(:response) { ModelHelper.response(Person, {}, whitelist: 'created_at') }
 
     it_behaves_like 'fastapi_meta' do

@@ -16,7 +16,7 @@ describe Bucket do
 
   describe 'when locating a specific bucket using safe filters' do
     let!(:bucket)  { create(:blue_paper_bucket) }
-    let(:response) { ModelHelper.response(Bucket, { color: 'blue', material: 'paper' }, { safe: true }) }
+    let(:response) { ModelHelper.response(Bucket, { color: 'blue', material: 'paper' }, safe: true) }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
@@ -29,7 +29,7 @@ describe Bucket do
 
   describe 'when locating a specific bucket using safe filters that are not allowed' do
     let!(:bucket)  { create(:blue_paper_bucket) }
-    let(:response) { ModelHelper.response(Bucket, { id: 1 }, { safe: true }) }
+    let(:response) { ModelHelper.response(Bucket, { id: 1 }, safe: true) }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 0, count: 0, offset: 0, error: /Filter "id" not supported/ } }
@@ -207,7 +207,7 @@ describe Bucket do
   end
 
   describe 'when spoofing a bucket with no meta' do
-    let(:bucket)   { Bucket.fastapi.spoof([{id: 1, color: 'blue' }]) }
+    let(:bucket)   { Bucket.fastapi.spoof([{ id: 1, color: 'blue' }]) }
     let(:response) { JSON.parse(bucket) }
 
     it_behaves_like 'fastapi_meta' do
@@ -220,7 +220,7 @@ describe Bucket do
   end
 
   describe 'when spoofing a bucket with custom meta' do
-    let(:bucket)   { Bucket.fastapi.spoof([{id: 1, color: 'blue' }], { count: 10, total: 10 }) }
+    let(:bucket)   { Bucket.fastapi.spoof([{ id: 1, color: 'blue' }], { count: 10, total: 10 }) }
     let(:response) { JSON.parse(bucket) }
 
     it_behaves_like 'fastapi_meta' do

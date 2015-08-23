@@ -185,7 +185,7 @@ module FastAPI
 
       begin
         parsed_filters = parse_filters(filters, safe)
-        prepared_data = FastAPI::SQL.new(parsed_filters, offset, count, @model, @whitelist_fields, safe)
+        prepared_data = FastAPI::SQL.new(parsed_filters, offset, count, @model, @whitelist_fields)
       rescue StandardError => exception
         return error(offset, exception.message)
       end
