@@ -28,8 +28,8 @@ module FastAPI
     #
     # @param fields [Array] an array containing fields to whitelist for the SQL query. Can also pass in fields as arguments.
     # @return [FastAPI] the current instance
-    def whitelist(fields = [])
-      @whitelist_fields.concat(fields)
+    def whitelist(*fields)
+      @whitelist_fields.concat([fields].flatten)
 
       self
     end
