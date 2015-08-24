@@ -3,7 +3,7 @@ module ModelHelper
     api = clazz.fastapi
 
     if options.key?(:whitelist)
-      api.whitelist([*options[:whitelist]])
+      api.whitelist(options[:whitelist])
     end
 
     meta = options.key?(:meta) ? options[:meta] : {}
