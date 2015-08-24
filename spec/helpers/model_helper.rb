@@ -3,7 +3,7 @@ module ModelHelper
     api = clazz.fastapi
 
     if options.key?(:whitelist)
-      api.whitelist([*options[:whitelist]])
+      api.whitelist(options[:whitelist])
     end
 
     results = options[:safe] ? api.safe_filter(filter) : api.filter(filter)

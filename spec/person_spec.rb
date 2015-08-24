@@ -48,14 +48,29 @@ describe Person do
 
   describe 'when whitelisting person attributes' do
     let!(:person) { create(:person) }
-    let(:response) { ModelHelper.response(Person, {}, whitelist: 'created_at') }
 
-    it_behaves_like 'fastapi_meta' do
-      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    describe 'as arguments' do
+      let(:response) { ModelHelper.response(Person, {}, whitelist: 'created_at') }
+
+      it_behaves_like 'fastapi_meta' do
+        let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+      end
+
+      it_behaves_like 'fastapi_data' do
+        let(:expected) { { attributes: %w(id name gender age buckets dishes created_at) } }
+      end
     end
 
-    it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets dishes created_at) } }
+    describe 'as an array' do
+      let(:response) { Oj.load(Person.fastapi.whitelist([:created_at]).filter.response) }
+
+      it_behaves_like 'fastapi_meta' do
+        let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+      end
+
+      it_behaves_like 'fastapi_data' do
+        let(:expected) { { attributes: %w(id name gender age buckets dishes created_at) } }
+      end
     end
   end
 
