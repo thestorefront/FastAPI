@@ -17,7 +17,7 @@ module FastAPI
 
     private
     def default_meta
-      { total: @data.size, count: @data.size, offset: 0 }
+      { total: @data.size, count: @data.size, offset: 0, error: nil }
     end
 
     def prepared_data
