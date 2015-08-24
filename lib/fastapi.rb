@@ -5,6 +5,7 @@ require 'fastapi/extension'
 require 'fastapi/comparison'
 require 'fastapi/conversions'
 require 'fastapi/sql'
+require 'fastapi/spoof'
 require 'fastapi/utilities'
 
 module FastAPI
@@ -122,11 +123,11 @@ module FastAPI
     #
     # @return [String] JSON data and metadata
     def spoof(data = [], meta = {})
-      meta[:total]  ||= data.count
-      meta[:count]  ||= data.count
-      meta[:offset] ||= 0
+      FastAPI::Spoof.new(data, meta).spoof
+    end
 
-      Oj.dump(meta: meta, data: data)
+    def spoof!(data, meta = {})
+      FastAPI::Spoof.new(data, meta, @whitelist_fields).spoof!
     end
 
     # Returns a JSONified string representing a rejected API response with invalid fields parameters
