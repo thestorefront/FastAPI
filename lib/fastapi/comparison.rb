@@ -1,6 +1,5 @@
 module FastAPI
   class Comparison
-
     attr_reader :sql
     alias_method :to_s, :sql
 
@@ -37,12 +36,12 @@ module FastAPI
       false: false
     }.with_indifferent_access
 
-    @@types = Hash.new('text').merge({
+    @@types = Hash.new('text').merge(
       boolean: 'boolean',
       integer: 'integer',
       float:   'float',
       string:  'varchar'
-    }).with_indifferent_access
+    ).with_indifferent_access
 
     def self.valid_comparator?(comparator)
       @@scalar_input.key?(comparator) || @@multi_input.key?(comparator)
@@ -65,14 +64,13 @@ module FastAPI
     end
 
     private
+
     def prepare_comparator(comparator, value)
-
-      if value.nil? and comparator == 'is'
-        comparator = :null
+      if value.nil? && comparator == 'is'
+        :null
+      else
+        comparator
       end
-
-      return comparator
-
     end
 
     def prepare_value(value, type)

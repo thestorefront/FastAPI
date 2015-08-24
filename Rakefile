@@ -11,7 +11,7 @@ namespace :spec do
   task :console do
     load_gems_for_irb
 
-    puts "FastAPI console:"
+    puts 'FastAPI console:'
     ARGV.clear
     IRB.start
 

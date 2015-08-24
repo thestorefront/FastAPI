@@ -8,6 +8,18 @@ FactoryGirl.define do
       name 'Example Person'
     end
 
+    factory :person_with_pets do
+      name 'Person with Pets'
+
+      transient do
+        pet_count 5
+      end
+
+      after(:create) do |owner, evaluator|
+        create_list(:pet, evaluator.pet_count, owner: owner)
+      end
+    end
+
     factory :person_with_buckets do
       name 'Person with Buckets'
 

@@ -123,7 +123,7 @@ describe Marble do
 
   describe 'when locating marbles and specifying an order DESC' do
     let!(:buckets) { create(:bucket_with_marbles) }
-    let(:response) { ModelHelper.response(Marble, { __order: [:id, :DESC] }) }
+    let(:response) { ModelHelper.response(Marble, __order: [:id, :DESC]) }
     let(:marbles)  { response['data'] }
 
     it_behaves_like 'fastapi_meta' do
@@ -142,7 +142,7 @@ describe Marble do
 
   describe 'when locating marbles and specifying an order ASC' do
     let!(:buckets) { create(:bucket_with_marbles) }
-    let(:response) { ModelHelper.response(Marble, { __order: [:id, :ASC] }) }
+    let(:response) { ModelHelper.response(Marble, __order: [:id, :ASC]) }
     let(:marbles)  { response['data'] }
 
     it_behaves_like 'fastapi_meta' do
@@ -161,7 +161,7 @@ describe Marble do
 
   describe 'when locating marbles without an order' do
     let!(:buckets) { create(:bucket_with_marbles) }
-    let(:response) { ModelHelper.response(Marble, { __order: 'id' }) }
+    let(:response) { ModelHelper.response(Marble, __order: 'id') }
     let(:marbles)  { response['data'] }
 
     it_behaves_like 'fastapi_meta' do
@@ -180,7 +180,7 @@ describe Marble do
 
   describe 'when locating marbles using offset' do
     let!(:buckets)    { create(:bucket_with_marbles) }
-    let(:response)    { ModelHelper.response(Marble, { __offset: 5, __order: [:id, :ASC] }) }
+    let(:response)    { ModelHelper.response(Marble, __offset: 5, __order: [:id, :ASC]) }
     let(:marbles)     { response['data'] }
     let(:correct_ids) { Marble.pluck(:id).sort.drop(5) }
 
@@ -200,7 +200,7 @@ describe Marble do
 
   describe 'when locating marbles using count' do
     let!(:buckets)    { create(:bucket_with_marbles) }
-    let(:response)    { ModelHelper.response(Marble, { __count: 5, __order: [:id, :ASC] }) }
+    let(:response)    { ModelHelper.response(Marble, __count: 5, __order: [:id, :ASC]) }
     let(:marbles)     { response['data'] }
     let(:correct_ids) { Marble.pluck(:id).sort.first(5) }
 

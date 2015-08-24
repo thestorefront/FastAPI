@@ -1,5 +1,5 @@
 class Bucket < ActiveRecord::Base
-  
+
   belongs_to :person
   has_many :marbles
 

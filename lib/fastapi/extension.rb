@@ -1,9 +1,7 @@
 module Extension
-
   extend ActiveSupport::Concern
 
   module ClassMethods
-
     # Used to set the standard interface for the top level of a fastapi response
     #
     # @param fields [Array] a list of fields in the form of symbols
@@ -50,15 +48,15 @@ module Extension
     end
 
     def fastapi_fields
-      @fastapi_fields || [:id]
+      @fastapi_fields || [primary_key.to_sym]
     end
 
     def fastapi_fields_sub
-      @fastapi_fields_sub || [:id]
+      @fastapi_fields_sub || [primary_key.to_sym]
     end
 
     def fastapi_filters_whitelist
-      @fastapi_filters_whitelist || @fastapi_fields || [:id]
+      @fastapi_filters_whitelist || @fastapi_fields || [primary_key.to_sym]
     end
 
     def fastapi_filters

@@ -10,7 +10,7 @@ describe Person do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets dishes) } }
+      let(:expected) { { attributes: %w(id name gender age buckets dishes pets) } }
     end
   end
 
@@ -23,7 +23,7 @@ describe Person do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets dishes) } }
+      let(:expected) { { attributes: %w(id name gender age buckets dishes pets) } }
     end
   end
 
@@ -31,14 +31,14 @@ describe Person do
     let!(:young_person) { create(:person, name: 'Young Dude', age: 15) }
     let!(:older_person) { create(:person, name: 'Old Guy', age: 65) }
 
-    let(:response) {ModelHelper.response(Person, age__lt: 20) }
+    let(:response) { ModelHelper.response(Person, age__lt: 20) }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets dishes) } }
+      let(:expected) { { attributes: %w(id name gender age buckets dishes pets) } }
     end
 
     it 'has the correct name' do
@@ -57,7 +57,7 @@ describe Person do
       end
 
       it_behaves_like 'fastapi_data' do
-        let(:expected) { { attributes: %w(id name gender age buckets dishes created_at) } }
+        let(:expected) { { attributes: %w(id name gender age buckets dishes created_at pets) } }
       end
     end
 
@@ -69,7 +69,7 @@ describe Person do
       end
 
       it_behaves_like 'fastapi_data' do
-        let(:expected) { { attributes: %w(id name gender age buckets dishes created_at) } }
+        let(:expected) { { attributes: %w(id name gender age buckets dishes created_at pets) } }
       end
     end
   end
@@ -84,7 +84,7 @@ describe Person do
     end
 
     it_behaves_like 'fastapi_data' do
-      let(:expected) { { attributes: %w(id name gender age buckets dishes) } }
+      let(:expected) { { attributes: %w(id name gender age buckets dishes pets) } }
     end
 
     it 'has the correct id' do
@@ -115,6 +115,37 @@ describe Person do
 
     it_behaves_like 'fastapi_data' do
       let(:expected) { { data: person_from_bucket, attributes: %w(id name gender age) } }
+    end
+  end
+
+  describe 'when locating an owner (person) associated with a pet' do
+    let!(:person)         { create(:person_with_pets) }
+    let(:response)        { ModelHelper.response(Pet) }
+    let(:person_from_pet) { response['data'].first['owner'] }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 5, count: 5, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { data: person_from_pet, attributes: %w(id name gender age) } }
+    end
+  end
+
+  describe 'when overriding meta' do
+    let!(:people)  { create_list(:person, 5) }
+    let(:response) { ModelHelper.response(Person, {}, meta: { total: 1, offset: 1, count: 1}) }
+
+    it 'has the correct actual count' do
+      expect(Person.count).to eq 5
+    end
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 1, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id name gender age buckets dishes pets) } }
     end
   end
 end
