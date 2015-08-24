@@ -75,9 +75,9 @@ module FastAPI
     def generate_field_list(klazz, fields)
       fields.each_with_object([]) do |field, list|
         if klazz.columns_hash[field.to_s].respond_to?(:array) && klazz.columns_hash[field.to_s].array
-          list << "ARRAY_TO_JSON(#{klazz.table_name}.#{field}) AS #{field}"
+          list << %(ARRAY_TO_JSON("#{klazz.table_name}"."#{field}") AS "#{field}")
         else
-          list << "#{klazz.table_name}.#{field} AS #{field}"
+          list << %("#{klazz.table_name}"."#{field}" AS "#{field}")
         end
       end
     end
@@ -98,9 +98,9 @@ module FastAPI
 
         model_data[:model].fastapi_fields_sub.each do |field|
           if model_data[:model].columns_hash[field.to_s].respond_to?(:array) && model_data[:model].columns_hash[field.to_s].array
-            field_list << "ARRAY_TO_JSON(#{table_name}.#{field}) AS #{association_name}__#{field}"
+            field_list << %(ARRAY_TO_JSON("#{association_name}"."#{field}") AS "#{association_name}__#{field}")
           else
-            field_list << "#{table_name}.#{field} AS #{association_name}__#{field}"
+            field_list << %("#{association_name}"."#{field}" AS "#{association_name}__#{field}")
           end
         end
 
@@ -108,11 +108,9 @@ module FastAPI
         if model_data[:type] == :belongs_to
 
           # joins
-          join_list << "LEFT JOIN #{table_name} AS #{table_name} " \
-            "ON #{parent_table_name}.#{foreign_key} = #{table_name}.#{primary_key}"
+          join_list << %(LEFT JOIN "#{table_name}" AS "#{association_name}" ON "#{parent_table_name}"."#{foreign_key}" = "#{association_name}"."#{primary_key}")
         elsif model_data[:type] == :has_one
-          join_list << "LEFT JOIN #{table_name} AS #{table_name} " \
-            "ON #{table_name}.#{foreign_key} = #{parent_table_name}.#{parent_primary_key}"
+          join_list << %(LEFT JOIN "#{table_name}" AS "#{association_name}" ON "#{association_name}"."#{foreign_key}" = "#{parent_table_name}"."#{parent_primary_key}")
         end
       end
     end
@@ -133,34 +131,34 @@ module FastAPI
         model_symbol = table_name.to_sym
 
         model_fields = model.fastapi_fields_sub.each_with_object([]) do |field, m_fields|
-          m_fields << "__#{association_name}.#{field}"
+          m_fields << %("__#{association_name}"."#{field}")
         end
 
         if filters[:has_many].key?(model_symbol)
 
           if filters[:has_many][model_symbol].present?
-            has_many_filters = "AND #{filters[:has_many][model_symbol].join(' AND ')}"
+            has_many_filters = %(AND #{filters[:has_many][model_symbol].join(' AND ')})
           else
             has_many_filters = nil
           end
 
           if filters[:has_many_order][model_symbol].present?
-            has_many_order = "ORDER BY #{filters[:has_many_order][model_symbol]}"
+            has_many_order = %(ORDER BY #{filters[:has_many_order][model_symbol]})
           else
             has_many_order = nil
           end
         end
 
         field_list << [
-          "ARRAY_TO_JSON(ARRAY(SELECT ROW(#{model_fields.join(', ')})",
-          "FROM #{table_name}",
-          "AS __#{association_name}",
-          "WHERE __#{association_name}.#{foreign_key} IS NOT NULL",
-          "AND __#{association_name}.#{foreign_key}",
-          "= #{parent_table_name}.#{parent_primary_key}",
+          %[ARRAY_TO_JSON(ARRAY(SELECT ROW(#{model_fields.join(', ')})],
+          %[FROM "#{table_name}"],
+          %[AS "__#{association_name}"],
+          %[WHERE "__#{association_name}"."#{foreign_key}" IS NOT NULL],
+          %[AND "__#{association_name}"."#{foreign_key}"],
+          %[= "#{parent_table_name}"."#{parent_primary_key}"],
           has_many_filters,
           has_many_order,
-          ")) AS __many__#{association_name}"
+          %[)) AS "__many__#{association_name}"]
         ].compact.join(' ')
       end
     end

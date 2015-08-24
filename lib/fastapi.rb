@@ -343,7 +343,7 @@ module FastAPI
           if self_obj.column_names.exclude?(order[0])
             order = nil
           else
-            order[0] = "#{self_string_table}.#{order[0]}"
+            order[0] = %("#{self_string_table}"."#{order[0]}")
             order = order.join(' ')
           end
         end
@@ -378,7 +378,7 @@ module FastAPI
 
         elsif self_obj.column_names.include?(field)
 
-          base_field   = "#{self_string_table}.#{field}"
+          base_field   = %("#{self_string_table}"."#{field}")
           filter_array << Comparison.new(comparator, data, base_field, self_obj.columns_hash[field].type)
 
         end
