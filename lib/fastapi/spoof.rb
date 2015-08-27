@@ -17,11 +17,13 @@ module FastAPI
 
     private
     def default_meta
-      { total: @data.size, count: @data.size, offset: 0, error: nil }
+      size = @data.respond_to?(:size) ? @data.size : 1
+
+      { total: size, count: size, offset: 0, error: nil }
     end
 
     def prepared_data
-      @data.map do |row|
+      [*@data].map do |row|
         allowed_fields = allowed_fields(row.class)
         clean_data(attributes_and_associations(row), allowed_fields)
       end

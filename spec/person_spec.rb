@@ -149,6 +149,40 @@ describe Person do
     end
   end
 
+  describe 'when spoofing! a single model' do
+    let!(:person)          { create(:person_with_buckets) }
+    let(:response)         { ModelHelper.spoof!(Person, person) }
+    let(:retrieved_person) { response["data"].first }
+
+    it_behaves_like 'fastapi_meta' do
+      let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
+    end
+
+    it_behaves_like 'fastapi_data' do
+      let(:expected) { { attributes: %w(id name gender age) } }
+    end
+
+    it 'has the correct count' do
+      expect(response["data"].size).to eq 1
+    end
+
+    it 'has the correct id' do
+      expect(retrieved_person["id"]).to eq person.id
+    end
+
+    it 'has the correct name' do
+      expect(retrieved_person["name"]).to eq person.name
+    end
+
+    it 'has the correct gender' do
+      expect(retrieved_person["gender"]).to eq person.gender
+    end
+
+    it 'has the correct age' do
+      expect(retrieved_person["age"]).to eq person.age
+    end
+  end
+
   describe 'when spoofing! without preload' do
     let!(:person)          { create(:person_with_buckets) }
     let(:people)           { Person.all }
