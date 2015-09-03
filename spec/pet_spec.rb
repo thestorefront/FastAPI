@@ -81,5 +81,31 @@ describe Pet do
         let(:expected) { { data: pet_from_person, attributes: %w(peoples_pets_id name color) } }
       end
     end
+
+    describe 'when locating a pet using a multi-value comparison and an empty array' do
+      let!(:pet)     { create(:pet) }
+      let(:response) { ModelHelper.response(Pet, peoples_pets_id__in: []) }
+
+      it_behaves_like 'fastapi_meta' do
+        let(:expected) { { total: 0, count: 0, offset: 0, error: false } }
+      end
+
+      it 'has an empty data array' do
+        expect(response['data']).to eq []
+      end
+    end
+
+    describe 'when locating a pet using a multi-value comparison and nil' do
+      let!(:pet)     { create(:pet) }
+      let(:response) { ModelHelper.response(Pet, peoples_pets_id__in: nil) }
+
+      it_behaves_like 'fastapi_meta' do
+        let(:expected) { { total: 0, count: 0, offset: 0, error: false } }
+      end
+
+      it 'has an empty data array' do
+        expect(response['data']).to eq []
+      end
+    end
   end
 end

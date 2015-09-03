@@ -82,8 +82,12 @@ module FastAPI
     end
 
     def multi_sql(clause, value, field, type)
-      values = [*value].map { |v| ActiveRecord::Base.connection.quote(v) }.join(',')
-      [clause.sub('__FIELD__', field).sub('__VALUES__', values).sub('__TYPE__', @@types[type])].compact.join
+      if value.nil? || value.empty?
+        '1 = 0'
+      else
+        values = [*value].map { |v| ActiveRecord::Base.connection.quote(v) }.join(',')
+        [clause.sub('__FIELD__', field).sub('__VALUES__', values).sub('__TYPE__', @@types[type])].compact.join
+      end
     end
   end
 end
