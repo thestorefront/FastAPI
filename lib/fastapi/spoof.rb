@@ -53,7 +53,7 @@ module FastAPI
     def retrieved_attributes(target, allowed_fields)
       if target.respond_to?(:map)
         target.map { |element| clean_data(element.attributes, allowed_fields) }
-      else
+      elsif target.present?
         clean_data(target.attributes, allowed_fields)
       end
     end
