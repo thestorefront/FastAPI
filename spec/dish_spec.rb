@@ -82,4 +82,15 @@ describe Dish do
       expect(beverage).to_not be_instance_of(Array)
     end
   end
+
+  describe 'when spoofing! using preload on a has_one relationship that is nil' do
+    let!(:dish)    { create(:burrito) }
+    let(:burrito)  { Dish.eager_load(:beverage) }
+    let(:response) { ModelHelper.spoof!(Dish, burrito) }
+    let(:beverage) { response['data'].first['beverage'] }
+
+    it 'the beverage is nil' do
+      expect(beverage).to be_nil
+    end
+  end
 end
