@@ -12,7 +12,7 @@ describe Pet do
       end
 
       it_behaves_like 'fastapi_data' do
-        let(:expected) { { attributes: %w(peoples_pets_id name color owner) } }
+        let(:expected) { { attributes: %w(peoples_pets_id name color owner nicknames favorite_dishes) } }
       end
 
       it 'has the correct color' do
@@ -34,7 +34,7 @@ describe Pet do
       end
 
       it_behaves_like 'fastapi_data' do
-        let(:expected) { { attributes: %w(peoples_pets_id name color owner) } }
+        let(:expected) { { attributes: %w(peoples_pets_id name color owner nicknames favorite_dishes) } }
       end
     end
 
@@ -48,7 +48,7 @@ describe Pet do
       end
 
       it_behaves_like 'fastapi_data' do
-        let(:expected) { { attributes: %w(peoples_pets_id name color owner) } }
+        let(:expected) { { attributes: %w(peoples_pets_id name color owner nicknames favorite_dishes) } }
       end
 
       it 'has the correct id' do
@@ -78,7 +78,7 @@ describe Pet do
       end
 
       it_behaves_like 'fastapi_data' do
-        let(:expected) { { data: pet_from_person, attributes: %w(peoples_pets_id name color) } }
+        let(:expected) { { data: pet_from_person, attributes: %w(peoples_pets_id name color nicknames favorite_dishes) } }
       end
     end
 
