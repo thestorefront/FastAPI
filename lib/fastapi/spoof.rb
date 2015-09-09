@@ -43,13 +43,18 @@ module FastAPI
 
     def loaded_associations(row)
       row.association_cache.each_with_object({}) do |(name, association), results|
-
         allowed_fields = allowed_fields(association.klass, true)
         target         = association.target
-        raw_data       = [*target].map { |element| element.attributes }
-        cleaned_data   = raw_data.map { |data| clean_data(data, allowed_fields) }
 
-        results[name] = cleaned_data
+        results[name] = retrieved_attributes(target, allowed_fields)
+      end
+    end
+
+    def retrieved_attributes(target, allowed_fields)
+      if target.respond_to?(:map)
+        target.map { |element| clean_data(element.attributes, allowed_fields) }
+      else
+        clean_data(target.attributes, allowed_fields)
       end
     end
   end
