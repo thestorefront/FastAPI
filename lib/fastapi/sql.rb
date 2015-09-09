@@ -104,10 +104,7 @@ module FastAPI
           end
         end
 
-        # fields
         if model_data[:type] == :belongs_to
-
-          # joins
           join_list << %(LEFT JOIN "#{table_name}" AS "#{association_name}" ON "#{parent_table_name}"."#{foreign_key}" = "#{association_name}"."#{primary_key}")
         elsif model_data[:type] == :has_one
           join_list << %(LEFT JOIN "#{table_name}" AS "#{association_name}" ON "#{association_name}"."#{foreign_key}" = "#{parent_table_name}"."#{parent_primary_key}")
