@@ -54,6 +54,8 @@ ActiveRecord::Schema.define(version: 20150330000000) do
     t.primary_key 'peoples_pets_id'
     t.string 'name'
     t.string 'color'
+    t.string 'nicknames', array: true, default: []
+    t.integer 'favorite_dishes', array: true, default: []
     t.integer 'owner_id'
 
     t.timestamps null: false
