@@ -152,7 +152,7 @@ describe Person do
   describe 'when spoofing! a single model' do
     let!(:person)          { create(:person_with_buckets) }
     let(:response)         { ModelHelper.spoof!(Person, person) }
-    let(:retrieved_person) { response["data"].first }
+    let(:retrieved_person) { response['data'].first }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
@@ -163,23 +163,23 @@ describe Person do
     end
 
     it 'has the correct count' do
-      expect(response["data"].size).to eq 1
+      expect(response['data'].size).to eq 1
     end
 
     it 'has the correct id' do
-      expect(retrieved_person["id"]).to eq person.id
+      expect(retrieved_person['id']).to eq person.id
     end
 
     it 'has the correct name' do
-      expect(retrieved_person["name"]).to eq person.name
+      expect(retrieved_person['name']).to eq person.name
     end
 
     it 'has the correct gender' do
-      expect(retrieved_person["gender"]).to eq person.gender
+      expect(retrieved_person['gender']).to eq person.gender
     end
 
     it 'has the correct age' do
-      expect(retrieved_person["age"]).to eq person.age
+      expect(retrieved_person['age']).to eq person.age
     end
   end
 
@@ -187,7 +187,7 @@ describe Person do
     let!(:person)          { create(:person_with_buckets) }
     let(:people)           { Person.all }
     let(:response)         { ModelHelper.spoof!(Person, people) }
-    let(:retrieved_person) { response["data"].first }
+    let(:retrieved_person) { response['data'].first }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
@@ -198,23 +198,23 @@ describe Person do
     end
 
     it 'has the correct count' do
-      expect(response["data"].size).to eq 1
+      expect(response['data'].size).to eq 1
     end
 
     it 'has the correct id' do
-      expect(retrieved_person["id"]).to eq person.id
+      expect(retrieved_person['id']).to eq person.id
     end
 
     it 'has the correct name' do
-      expect(retrieved_person["name"]).to eq person.name
+      expect(retrieved_person['name']).to eq person.name
     end
 
     it 'has the correct gender' do
-      expect(retrieved_person["gender"]).to eq person.gender
+      expect(retrieved_person['gender']).to eq person.gender
     end
 
     it 'has the correct age' do
-      expect(retrieved_person["age"]).to eq person.age
+      expect(retrieved_person['age']).to eq person.age
     end
   end
 
@@ -222,7 +222,7 @@ describe Person do
     let!(:person)          { create(:person_with_buckets) }
     let(:people)           { Person.all }
     let(:response)         { ModelHelper.spoof!(Person, people, whitelist: :created_at) }
-    let(:retrieved_person) { response["data"].first }
+    let(:retrieved_person) { response['data'].first }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
@@ -237,7 +237,7 @@ describe Person do
     let!(:person)          { create(:person_with_buckets) }
     let(:people)           { Person.eager_load(:buckets) }
     let(:response)         { ModelHelper.spoof!(Person, people) }
-    let(:retrieved_person) { response["data"].first }
+    let(:retrieved_person) { response['data'].first }
 
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 1, count: 1, offset: 0, error: false } }
@@ -248,29 +248,29 @@ describe Person do
     end
 
     it 'has the correct count' do
-      expect(response["data"].size).to eq 1
+      expect(response['data'].size).to eq 1
     end
 
     it 'has the correct id' do
-      expect(retrieved_person["id"]).to eq person.id
+      expect(retrieved_person['id']).to eq person.id
     end
 
     it 'has the correct name' do
-      expect(retrieved_person["name"]).to eq person.name
+      expect(retrieved_person['name']).to eq person.name
     end
 
     it 'has the correct gender' do
-      expect(retrieved_person["gender"]).to eq person.gender
+      expect(retrieved_person['gender']).to eq person.gender
     end
 
     it 'has the correct age' do
-      expect(retrieved_person["age"]).to eq person.age
+      expect(retrieved_person['age']).to eq person.age
     end
 
     describe 'preloaded buckets' do
-      let(:buckets)             { retrieved_person["buckets"] }
+      let(:buckets)             { retrieved_person['buckets'] }
       let(:associated_bucket)   { buckets.first }
-      let(:actual_first_bucket) { Bucket.find(associated_bucket["id"]) }
+      let(:actual_first_bucket) { Bucket.find(associated_bucket['id']) }
 
       it_behaves_like 'fastapi_data' do
         let(:expected) { { data: associated_bucket, attributes: %w(id color material used) } }
@@ -281,19 +281,19 @@ describe Person do
       end
 
       it 'the first bucket has the correct id' do
-        expect(associated_bucket["id"]).to eq actual_first_bucket.id
+        expect(associated_bucket['id']).to eq actual_first_bucket.id
       end
 
       it 'the first bucket has the correct color' do
-        expect(associated_bucket["color"]).to eq actual_first_bucket.color
+        expect(associated_bucket['color']).to eq actual_first_bucket.color
       end
 
       it 'the first bucket has the correct material' do
-        expect(associated_bucket["material"]).to eq actual_first_bucket.material
+        expect(associated_bucket['material']).to eq actual_first_bucket.material
       end
 
       it 'the first bucket has the correct used value' do
-        expect(associated_bucket["used"]).to eq actual_first_bucket.used
+        expect(associated_bucket['used']).to eq actual_first_bucket.used
       end
     end
   end
