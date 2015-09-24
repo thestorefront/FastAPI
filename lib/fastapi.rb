@@ -9,6 +9,11 @@ require 'fastapi/spoof'
 require 'fastapi/utilities'
 
 module FastAPI
+
+  def self.logger
+    @@logger ||= ActiveSupport::Logger.new(STDERR)
+  end
+
   Oj.default_options = { mode: :compat }
 
   class Wrapper
@@ -188,8 +193,11 @@ module FastAPI
         parsed_filters = parse_filters(filters, safe)
         prepared_data = FastAPI::SQL.new(parsed_filters, offset, count, @model, @whitelist_fields)
       rescue StandardError => exception
+        FastAPI.logger.error("FastAPI -- Error Creating SQL:\n\t#{exception.message}")
         return error(offset, exception.message)
       end
+
+      FastAPI.logger.debug("FastAPI -- SQL:\n\t#{prepared_data[:query]}")
 
       model_lookup = prepared_data[:models].each_with_object({}) do |(key, model), lookup|
         columns = model.columns_hash
@@ -204,6 +212,7 @@ module FastAPI
         count_result = ActiveRecord::Base.connection.execute(prepared_data[:count_query])
         result = ActiveRecord::Base.connection.execute(prepared_data[:query])
       rescue StandardError
+        FastAPI.logger.error("FastAPI -- Error Executing Query:\n\t#{prepared_data[:query]}")
         return error(offset, 'Query failed')
       end
 
