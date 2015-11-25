@@ -173,12 +173,19 @@ module FastAPI
       { data: [], total: 0, count: 0, offset: offset, error: { message: message } }
     end
 
-    def fastapi_query(filters = {}, safe = false)
+    SUPPORTED_ADAPTERS = %w{
+      ActiveRecord::ConnectionAdapters::PostGISAdapter
+      ActiveRecord::ConnectionAdapters::PostgreSQLAdapter
+    }
 
-      unless ActiveRecord::ConnectionAdapters.constants.include?(:PostgreSQLAdapter) &&
-          ActiveRecord::Base.connection.instance_of?(ActiveRecord::ConnectionAdapters::PostgreSQLAdapter)
+    def check_supported_adapter!
+      unless SUPPORTED_ADAPTERS.include?(ActiveRecord::Base.connection.class.name)
         fail 'FastAPI only supports PostgreSQL at this time.'
       end
+    end
+
+    def fastapi_query(filters = {}, safe = false)
+      check_supported_adapter!
 
       offset = filters.delete(:__offset).try(:to_i) || 0
       cnt    = filters.delete(:__count).try(:to_i) || 500
