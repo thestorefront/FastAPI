@@ -31,6 +31,14 @@ describe Bucket do
     let!(:bucket)  { create(:blue_paper_bucket) }
     let(:response) { ModelHelper.response(Bucket, { id: 1 }, safe: true) }
 
+    before(:all) do
+      FastAPI.logger.level = ActiveSupport::Logger::FATAL
+    end
+
+    after(:all) do
+      FastAPI.logger.level = ActiveSupport::Logger::INFO
+    end
+
     it_behaves_like 'fastapi_meta' do
       let(:expected) { { total: 0, count: 0, offset: 0, error: /Filter "id" not supported/ } }
     end
